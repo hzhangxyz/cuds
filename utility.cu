@@ -1,11 +1,15 @@
-#include "utility.h++"
 #include "list.h++"
+#include "utility.h++"
 
 #include <cstdlib>
 
 namespace cuds {
     void MallocDeleter::operator()(void* ptr) const {
         free(ptr);
+    }
+
+    void CudaMallocDeleter::operator()(void* ptr) const {
+        cudaFree(ptr);
     }
 
     unique_malloc_ptr<term_t> text_to_term(const char* text, length_t length) {

@@ -11,11 +11,11 @@ namespace cuds {
     }
 
     CUDA_HOST_DEVICE length_t string_t::get_length() {
-        return *length_pointer();
+        return get_ensure_align(length_pointer());
     }
 
     CUDA_HOST_DEVICE string_t* string_t::set_length(length_t length) {
-        *length_pointer() = length;
+        set_ensure_align(length_pointer(), length);
         return this;
     }
 

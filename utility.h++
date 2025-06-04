@@ -4,8 +4,18 @@
 #include "rule.h++"
 #include "term.h++"
 
+#include <cstdio>
 #include <cstdlib>
 #include <memory>
+
+#define CHECK_CUDA_ERROR(call) \
+    { \
+        cudaError_t err = call; \
+        if (err != cudaSuccess) { \
+            fprintf(stderr, "CUDA error in %s at %s:%d with error code: %d (%s)\n", #call, __FILE__, __LINE__, err, cudaGetErrorString(err)); \
+            exit(EXIT_FAILURE); \
+        } \
+    }
 
 namespace cuds {
     /// @brief 用于给malloc的内存使用的unique_ptr deleter
@@ -17,6 +27,26 @@ namespace cuds {
     /// @tparam T 指针的类型
     template<typename T>
     using unique_malloc_ptr = std::unique_ptr<T, MallocDeleter>;
+
+#ifdef __CUDACC__
+    /// @brief 用于给cuda malloc的内存使用的unique_ptr deleter
+    struct CudaMallocDeleter {
+        void operator()(void* ptr) const;
+    };
+
+    /// @brief 用于给cuda malloc的内存使用的unique_ptr
+    /// @tparam T 指针的类型
+    template<typename T>
+    using unique_cuda_malloc_ptr = std::unique_ptr<T, CudaMallocDeleter>;
+
+    template<typename T>
+    unique_cuda_malloc_ptr<T> copy_host_to_device(unique_malloc_ptr<T>& h_ptr) {
+        T* d_ptr;
+        CHECK_CUDA_ERROR(cudaMalloc(&d_ptr, h_ptr->data_size()));
+        CHECK_CUDA_ERROR(cudaMemcpy(d_ptr, h_ptr.get(), h_ptr->data_size(), cudaMemcpyHostToDevice));
+        return unique_cuda_malloc_ptr<cuds::rule_t>(d_ptr);
+    }
+#endif
 
     /// @brief 将文本形式的term转化为二进制形式的term
     /// @param text 文本形式的term

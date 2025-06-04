@@ -13,10 +13,8 @@ namespace cuds {
                 return false;
             }
             length_t data_size = term_1->data_size();
-            for (length_t index = 0; index < data_size; ++index) {
-                if (reinterpret_cast<std::byte*>(term_1)[index] != reinterpret_cast<std::byte*>(term_2)[index]) {
-                    return false;
-                }
+            if (memcmp(term_1, term_2, data_size) != 0) {
+                return false;
             }
             return true;
         }
@@ -121,7 +119,7 @@ namespace cuds {
             begin = reinterpret_cast<term_t*>(begin->tail());
         }
         length_t offset = sizeof(term_type_t) + sizeof(length_t) + sizeof(length_t) * list_size;
-        memcpy(
+        memmove(
             reinterpret_cast<std::byte*>(this) + offset,
             reinterpret_cast<std::byte*>(this),
             reinterpret_cast<std::byte*>(end) - reinterpret_cast<std::byte*>(this)
@@ -162,7 +160,7 @@ namespace cuds {
         }
         length_t list_size = rule_1->get_list_size() - 1;
         length_t offset = sizeof(length_t) + sizeof(length_t) * list_size;
-        memcpy(
+        memmove(
             reinterpret_cast<std::byte*>(this) + offset,
             reinterpret_cast<std::byte*>(candidate_1->premises(0)->tail()),
             reinterpret_cast<std::byte*>(candidate_1->tail()) - reinterpret_cast<std::byte*>(candidate_1->premises(0)->tail())

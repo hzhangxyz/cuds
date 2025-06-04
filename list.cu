@@ -20,19 +20,19 @@ namespace cuds {
     }
 
     CUDA_HOST_DEVICE length_t list_t::get_list_size() {
-        return *list_size_pointer();
+        return get_ensure_align(list_size_pointer());
     }
 
     CUDA_HOST_DEVICE list_t* list_t::set_list_size(length_t list_size) {
-        *list_size_pointer() = list_size;
+        set_ensure_align(list_size_pointer(), list_size);
         for (length_t index = 0; index < get_list_size(); ++index) {
-            *term_size_pointer(index) = 0;
+            set_ensure_align(term_size_pointer(index), 0);
         }
         return this;
     }
 
     CUDA_HOST_DEVICE length_t list_t::term_size(length_t index) {
-        return *term_size_pointer(index);
+        return get_ensure_align(term_size_pointer(index));
     }
 
     CUDA_HOST_DEVICE term_t* list_t::term(length_t index) {
@@ -41,9 +41,9 @@ namespace cuds {
 
     CUDA_HOST_DEVICE void list_t::update_term_size(length_t index) {
         if (index == 0) {
-            *term_size_pointer(index) = term(index)->data_size();
+            set_ensure_align(term_size_pointer(index), term(index)->data_size());
         } else {
-            *term_size_pointer(index) = term(index)->data_size() + *term_size_pointer(index - 1);
+            set_ensure_align(term_size_pointer(index), term(index)->data_size() + get_ensure_align(term_size_pointer(index - 1)));
         }
     }
 
@@ -95,7 +95,7 @@ namespace cuds {
             ++list_size;
         }
         length_t offset = sizeof(length_t) + sizeof(length_t) * list_size;
-        memcpy(
+        memmove(
             reinterpret_cast<std::byte*>(this) + offset,
             reinterpret_cast<std::byte*>(this),
             reinterpret_cast<std::byte*>(term) - reinterpret_cast<std::byte*>(this)
