@@ -1,3 +1,4 @@
+#include "cuda_compact.h++"
 #include "item.h++"
 #include "list.h++"
 #include "rule.h++"
@@ -5,11 +6,9 @@
 #include "term.h++"
 #include "variable.h++"
 
-#include <cstring>
-
 namespace cuds {
     namespace {
-        bool term_equal(term_t* term_1, term_t* term_2) {
+        CUDA_HOST_DEVICE bool term_equal(term_t* term_1, term_t* term_2) {
             if (term_1->data_size() != term_2->data_size()) {
                 return false;
             }
@@ -22,7 +21,7 @@ namespace cuds {
             return true;
         }
 
-        void match_helper_add_to_dict(term_t* begin, term_t** mapping, term_t* term_1, term_t* term_2) {
+        CUDA_HOST_DEVICE void match_helper_add_to_dict(term_t* begin, term_t** mapping, term_t* term_1, term_t* term_2) {
             while (begin != *mapping) {
                 list_t* pair = begin->list();
                 term_t* key = pair->term(0);
@@ -50,7 +49,8 @@ namespace cuds {
             *mapping = reinterpret_cast<term_t*>(term->tail());
         }
 
-        void match_helper_main(term_t* begin, term_t** mapping, term_t* term_1, term_t* term_2, bool follow_first_for_double_variable) {
+        CUDA_HOST_DEVICE void
+        match_helper_main(term_t* begin, term_t** mapping, term_t* term_1, term_t* term_2, bool follow_first_for_double_variable) {
             if (term_1->variable() && term_2->variable()) {
                 // 两个都是variable
                 if (strcmp(term_1->variable()->name()->get_string(), term_2->variable()->name()->get_string()) == 0) {
@@ -107,7 +107,7 @@ namespace cuds {
         }
     } // namespace
 
-    term_t* term_t::match(term_t* term_1, term_t* term_2, bool follow_first_for_double_variable) {
+    CUDA_HOST_DEVICE term_t* term_t::match(term_t* term_1, term_t* term_2, bool follow_first_for_double_variable) {
         term_t* end = this;
         match_helper_main(this, &end, term_1, term_2, follow_first_for_double_variable);
         if (end == nullptr) {
@@ -133,7 +133,7 @@ namespace cuds {
         return this;
     }
 
-    rule_t* rule_t::match(rule_t* rule_1, rule_t* rule_2) {
+    CUDA_HOST_DEVICE rule_t* rule_t::match(rule_t* rule_1, rule_t* rule_2) {
         if (rule_1->premises_count() == 0 || rule_2->premises_count() != 0) {
             set_list_size(0);
             return this;

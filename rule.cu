@@ -1,13 +1,12 @@
+#include "cuda_compact.h++"
 #include "rule.h++"
 
-#include <cstring>
-
 namespace cuds {
-    term_t* rule_t::conclusion() {
+    CUDA_HOST_DEVICE term_t* rule_t::conclusion() {
         return term(get_list_size() - 1);
     }
 
-    term_t* rule_t::only_conclusion() {
+    CUDA_HOST_DEVICE term_t* rule_t::only_conclusion() {
         if (premises_count() == 0) {
             return conclusion();
         } else {
@@ -15,31 +14,31 @@ namespace cuds {
         }
     }
 
-    term_t* rule_t::premises(length_t index) {
+    CUDA_HOST_DEVICE term_t* rule_t::premises(length_t index) {
         return term(index);
     }
 
-    length_t rule_t::premises_count() {
+    CUDA_HOST_DEVICE length_t rule_t::premises_count() {
         return get_list_size() - 1;
     }
 
-    bool rule_t::valid() {
+    CUDA_HOST_DEVICE bool rule_t::valid() {
         return get_list_size() != 0;
     }
 
-    length_t rule_t::data_size() {
+    CUDA_HOST_DEVICE length_t rule_t::data_size() {
         return list_t::data_size();
     }
 
-    std::byte* rule_t::head() {
+    CUDA_HOST_DEVICE std::byte* rule_t::head() {
         return reinterpret_cast<std::byte*>(this);
     }
 
-    std::byte* rule_t::tail() {
+    CUDA_HOST_DEVICE std::byte* rule_t::tail() {
         return head() + data_size();
     }
 
-    char* rule_t::print(char* buffer) {
+    CUDA_HOST_DEVICE char* rule_t::print(char* buffer) {
         length_t max_length = 4;
         char* last_buffer = buffer;
         for (length_t index = 0; index < premises_count(); ++index) {
@@ -58,7 +57,7 @@ namespace cuds {
         return buffer;
     }
 
-    const char* rule_t::scan(const char* buffer) {
+    CUDA_HOST_DEVICE const char* rule_t::scan(const char* buffer) {
         term_t* term = reinterpret_cast<term_t*>(this);
         length_t list_size = 0;
         bool last_one = false;

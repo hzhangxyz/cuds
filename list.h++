@@ -22,7 +22,7 @@ namespace cuds {
     class list_t {
         /// @brief 获取list大小的指针
         /// @return list大小的指针
-        length_t* list_size_pointer();
+        CUDA_HOST_DEVICE length_t* list_size_pointer();
 
         /// @brief 获取前若干个term总大小的指针
         /// @param index 若干个term的指标
@@ -30,22 +30,22 @@ namespace cuds {
         ///
         /// 当index = 0时, 返回的是第一个term的大小;
         /// 当index = list_size - 1时, 返回的是所有term的总大小
-        length_t* term_size_pointer(length_t index);
+        CUDA_HOST_DEVICE length_t* term_size_pointer(length_t index);
 
         /// @brief 获取某个term的指针
         /// @param index 某个term的指标
         /// @return 某个term的指针
-        term_t* term_pointer(length_t index);
+        CUDA_HOST_DEVICE term_t* term_pointer(length_t index);
 
       public:
         /// @brief 获取list大小
         /// @return list大小
-        length_t get_list_size();
+        CUDA_HOST_DEVICE length_t get_list_size();
 
         /// @brief 设置list大小
         /// @param list_size 新的list大小
         /// @return list_t对象的指针
-        list_t* set_list_size(length_t list_size);
+        CUDA_HOST_DEVICE list_t* set_list_size(length_t list_size);
 
         /// @brief 获取前若干个term的总大小
         /// @param index 若干个term的指标
@@ -53,12 +53,12 @@ namespace cuds {
         ///
         /// 当index = 0时, 返回的是第一个term的大小;
         /// 当index = list_size - 1时, 返回的是所有term的总大小
-        length_t term_size(length_t index);
+        CUDA_HOST_DEVICE length_t term_size(length_t index);
 
         /// @brief 获取某个term的指针
         /// @param index 某个term的指标
         /// @return 某个term的指针
-        term_t* term(length_t index);
+        CUDA_HOST_DEVICE term_t* term(length_t index);
 
         /// @brief 更新term_size当中的某个元素
         /// @param index 某个元素的指标
@@ -69,29 +69,29 @@ namespace cuds {
         /// 设置第1个term, 更新第1个term size;
         /// 设置第2个term, 更新第2个term size;
         /// ...
-        void update_term_size(length_t index);
+        CUDA_HOST_DEVICE void update_term_size(length_t index);
 
         /// @brief 获取list_t对象的大小
         /// @return list_t对象的大小
-        length_t data_size();
+        CUDA_HOST_DEVICE length_t data_size();
 
         /// @brief 获取list_t对象的头字节指针
         /// @return list_t对象的头字节指针
-        std::byte* head();
+        CUDA_HOST_DEVICE std::byte* head();
 
         /// @brief 获取list_t对象的尾字节指针
         /// @return list_t对象的尾字节指针
-        std::byte* tail();
+        CUDA_HOST_DEVICE std::byte* tail();
 
         /// @brief 将list_t对象输出至buffer
         /// @param buffer 待被输出的buffer指针
         /// @return 被输出后的buffer指针
-        char* print(char* buffer);
+        CUDA_HOST_DEVICE char* print(char* buffer);
 
         /// @brief 从buffer中输入list_t对象
         /// @param buffer 待输入的buffer指针
         /// @return 被输入后的buffer指针
-        const char* scan(const char* buffer);
+        CUDA_HOST_DEVICE const char* scan(const char* buffer);
     };
 } // namespace cuds
 

@@ -1,27 +1,27 @@
 #include "item.h++"
 
 namespace cuds {
-    string_t* item_t::name() {
+    CUDA_HOST_DEVICE string_t* item_t::name() {
         return reinterpret_cast<string_t*>(this);
     }
 
-    length_t item_t::data_size() {
+    CUDA_HOST_DEVICE length_t item_t::data_size() {
         return name()->data_size();
     }
 
-    std::byte* item_t::head() {
+    CUDA_HOST_DEVICE std::byte* item_t::head() {
         return reinterpret_cast<std::byte*>(this);
     }
 
-    std::byte* item_t::tail() {
+    CUDA_HOST_DEVICE std::byte* item_t::tail() {
         return head() + data_size();
     }
 
-    char* item_t::print(char* buffer) {
+    CUDA_HOST_DEVICE char* item_t::print(char* buffer) {
         return name()->print(buffer);
     }
 
-    const char* item_t::scan(const char* buffer) {
+    CUDA_HOST_DEVICE const char* item_t::scan(const char* buffer) {
         return name()->scan(buffer);
     }
 } // namespace cuds

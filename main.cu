@@ -7,7 +7,6 @@
 #include "variable.h++"
 
 #include <chrono>
-#include <cstring>
 #include <functional>
 #include <iostream>
 #include <map>

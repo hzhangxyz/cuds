@@ -1,13 +1,12 @@
+#include "cuda_compact.h++"
 #include "item.h++"
 #include "list.h++"
 #include "rule.h++"
 #include "term.h++"
 #include "variable.h++"
 
-#include <cstring>
-
 namespace cuds {
-    term_t* term_t::ground(term_t* term, term_t* dictionary) {
+    CUDA_HOST_DEVICE term_t* term_t::ground(term_t* term, term_t* dictionary) {
         if (term->get_type() == term_type_t::variable) {
             char* this_string = term->variable()->name()->get_string();
             list_t* list = dictionary->list();
@@ -40,7 +39,7 @@ namespace cuds {
         return this;
     }
 
-    rule_t* rule_t::ground(rule_t* rule, term_t* dictionary) {
+    CUDA_HOST_DEVICE rule_t* rule_t::ground(rule_t* rule, term_t* dictionary) {
         list_t* dst = this;
         list_t* src = rule;
         dst->set_list_size(src->get_list_size());
@@ -51,7 +50,7 @@ namespace cuds {
         return this;
     }
 
-    rule_t* rule_t::ground(rule_t* rule, rule_t* dictionary) {
+    CUDA_HOST_DEVICE rule_t* rule_t::ground(rule_t* rule, rule_t* dictionary) {
         ground(rule, dictionary->only_conclusion());
         return this;
     }
