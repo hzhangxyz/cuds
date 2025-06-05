@@ -3,6 +3,7 @@
 #include "helper.h++"
 #include "item.h++"
 #include "list.h++"
+#include "rule.h++"
 #include "string.h++"
 #include "term.h++"
 #include "utility.h++"
@@ -18,6 +19,7 @@
 // TODO: check out of bound
 // TODO: manual stack
 // TODO: container on CUDA
+// TODO: batch call for many thread
 
 CUDA_HOST_DEVICE bool rule_equal(cuds::rule_t* rule_1, cuds::rule_t* rule_2) {
     if (rule_1->data_size() != rule_2->data_size()) {
@@ -105,21 +107,22 @@ __global__ void process(
     cuds::length_t old_facts_size,
     cuds::rule_t* target
 ) {
-    int thread_count = int(old_rules_size) * int(old_facts_size) - int(old_old_rules_size) * int(old_old_facts_size);
-    int thread_index = (blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.z * blockDim.y * blockDim.x) +
-                       (threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x);
+    cuds::length_t thread_count = old_rules_size * old_facts_size - old_old_rules_size * old_old_facts_size;
+    cuds::length_t thread_index =
+        (blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.z * blockDim.y * blockDim.x) +
+        (threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x);
 
     if (thread_index >= thread_count) {
         return;
     }
 
-    int rule_index;
-    int fact_index;
+    cuds::length_t rule_index;
+    cuds::length_t fact_index;
     if (thread_index < (old_rules_size - old_old_rules_size) * old_facts_size) {
         rule_index = thread_index / old_facts_size + old_old_rules_size;
         fact_index = thread_index % old_facts_size;
     } else {
-        int temp_index = thread_index - (old_rules_size - old_old_rules_size) * old_facts_size;
+        cuds::length_t temp_index = thread_index - (old_rules_size - old_old_rules_size) * old_facts_size;
         rule_index = temp_index % old_old_rules_size;
         fact_index = temp_index / old_old_rules_size + old_old_facts_size;
     }
@@ -149,8 +152,8 @@ __global__ void process(
 }
 
 void run() {
-    int single_result_size = 32000;
-    int single_result_size_threshold = 80;
+    int single_result_size = 10000;
+    int single_result_size_threshold = 500;
     int cuda_stack_size = 2000;
     int thread_per_block = 32;
 
@@ -210,7 +213,7 @@ void run() {
         CHECK_CUDA_ERROR(cudaMalloc(&facts_d, old_facts_size * sizeof(cuds::rule_t*)));
         CHECK_CUDA_ERROR(cudaMemcpy(facts_d, facts.data(), old_facts_size * sizeof(cuds::rule_t*), cudaMemcpyHostToDevice));
 
-        int thread_count = int(old_rules_size) * int(old_facts_size) - int(old_old_rules_size) * int(old_old_facts_size);
+        cuds::length_t thread_count = old_rules_size * old_facts_size - old_old_rules_size * old_old_facts_size;
 
         match_result_t* match_result_pool_d;
         CHECK_CUDA_ERROR(cudaMalloc(&match_result_pool_d, sizeof(match_result_t) * (thread_count + 1)));
@@ -246,7 +249,7 @@ void run() {
             return;
         }
 
-        for (int thread_index = 0; thread_index < thread_count; ++thread_index) {
+        for (cuds::length_t thread_index = 0; thread_index < thread_count; ++thread_index) {
             match_result_t* match_result_h = &match_result_pool_h[thread_index];
             if (match_result_h->flag == match_flag_t::fact || match_result_h->flag == match_flag_t::rule) {
                 cuds::rule_t* result_n;
