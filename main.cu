@@ -3,6 +3,7 @@
 #include "helper.h++"
 #include "item.h++"
 #include "list.h++"
+#include "rule.h++"
 #include "string.h++"
 #include "term.h++"
 #include "utility.h++"
@@ -18,7 +19,12 @@
 // TODO: check out of bound
 // TODO: manual stack
 // TODO: container on CUDA
+// TODO: batch call for many thread
 
+/// @brief 验证两个rule是否相等
+/// @param rule_1 第一个rule
+/// @param rule_2 第二个rule
+/// @return 相等则返回true, 否则是false
 CUDA_HOST_DEVICE bool rule_equal(cuds::rule_t* rule_1, cuds::rule_t* rule_2) {
     if (rule_1->data_size() != rule_2->data_size()) {
         return false;
@@ -39,10 +45,23 @@ enum class match_flag_t {
 };
 
 struct match_result_t {
+    /// @brief 包含了成功与否, 以及是fact还是rule等信息
     match_flag_t flag;
+    /// @brief 结果rule的大小
     cuds::length_t size;
 };
 
+/// @brief 将rule和fact进行匹配的核函数
+/// @param match_result 匹配的结果, 包含成功与否, 产出对象大小等信息
+/// @param rule_result 产出对象
+/// @param result_size_threshold 产出对象的截断大小
+/// @param rule 用于匹配的rule
+/// @param fact 用于匹配的fact
+/// @param rules 用于去重的rules合集
+/// @param rules_size 用于去重的rules合集大小
+/// @param facts 用于去重的facts合集
+/// @param facts_size 用于去重的facts合集大小
+/// @param target 用于查询是否成功的目标对象
 __device__ void match(
     match_result_t* match_result,
     cuds::rule_t* rule_result,
@@ -50,9 +69,9 @@ __device__ void match(
     cuds::rule_t* rule,
     cuds::rule_t* fact,
     cuds::rule_t** rules,
-    cuds::length_t rules_size,
+    std::size_t rules_size,
     cuds::rule_t** facts,
-    cuds::length_t facts_size,
+    std::size_t facts_size,
     cuds::rule_t* target
 ) {
     rule_result->match(rule, fact);
@@ -66,7 +85,7 @@ __device__ void match(
     }
     if (rule_result->premises_count() != 0) {
         // rule
-        for (cuds::length_t rule_index = 0; rule_index < rules_size; ++rule_index) {
+        for (std::size_t rule_index = 0; rule_index < rules_size; ++rule_index) {
             cuds::rule_t* old_rule = rules[rule_index];
             if (rule_equal(old_rule, rule_result)) {
                 match_result->flag = match_flag_t::fail;
@@ -77,7 +96,7 @@ __device__ void match(
         match_result->size = rule_result->data_size();
     } else {
         // fact
-        for (cuds::length_t fact_index = 0; fact_index < facts_size; ++fact_index) {
+        for (std::size_t fact_index = 0; fact_index < facts_size; ++fact_index) {
             cuds::rule_t* old_fact = facts[fact_index];
             if (rule_equal(old_fact, rule_result)) {
                 match_result->flag = match_flag_t::fail;
@@ -92,34 +111,46 @@ __device__ void match(
     }
 }
 
+/// @brief 将rule和fact进行批量匹配的核函数接口
+/// @param match_result_pool 匹配结果池
+/// @param rule_result_pool 产出对象池
+/// @param single_result_size 产出对象池中单个对象的大小
+/// @param single_result_size_threshold 产出对象的截断大小
+/// @param rules 用于去重的rules合集
+/// @param old_old_rules_size 老rules合集的大小
+/// @param old_rules_size 匹配前rules合集的大小
+/// @param facts 用于去重的facts合集
+/// @param old_old_facts_size 老facts合集的大小
+/// @param old_facts_size 匹配前facts合集的大小
+/// @param target 用于查询是否成功的目标对象
 __global__ void process(
     match_result_t* match_result_pool,
     cuds::rule_t* rule_result_pool,
     cuds::length_t single_result_size,
     cuds::length_t single_result_size_threshold,
     cuds::rule_t** rules,
-    cuds::length_t old_old_rules_size,
-    cuds::length_t old_rules_size,
+    std::size_t old_old_rules_size,
+    std::size_t old_rules_size,
     cuds::rule_t** facts,
-    cuds::length_t old_old_facts_size,
-    cuds::length_t old_facts_size,
+    std::size_t old_old_facts_size,
+    std::size_t old_facts_size,
     cuds::rule_t* target
 ) {
-    int thread_count = int(old_rules_size) * int(old_facts_size) - int(old_old_rules_size) * int(old_old_facts_size);
-    int thread_index = (blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.z * blockDim.y * blockDim.x) +
-                       (threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x);
+    std::size_t thread_count = old_rules_size * old_facts_size - old_old_rules_size * old_old_facts_size;
+    std::size_t thread_index = (blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.z * blockDim.y * blockDim.x) +
+                               (threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x);
 
     if (thread_index >= thread_count) {
         return;
     }
 
-    int rule_index;
-    int fact_index;
+    std::size_t rule_index;
+    std::size_t fact_index;
     if (thread_index < (old_rules_size - old_old_rules_size) * old_facts_size) {
         rule_index = thread_index / old_facts_size + old_old_rules_size;
         fact_index = thread_index % old_facts_size;
     } else {
-        int temp_index = thread_index - (old_rules_size - old_old_rules_size) * old_facts_size;
+        std::size_t temp_index = thread_index - (old_rules_size - old_old_rules_size) * old_facts_size;
         rule_index = temp_index % old_old_rules_size;
         fact_index = temp_index / old_old_rules_size + old_old_facts_size;
     }
@@ -149,8 +180,8 @@ __global__ void process(
 }
 
 void run() {
-    int single_result_size = 32000;
-    int single_result_size_threshold = 80;
+    int single_result_size = 10000;
+    int single_result_size_threshold = 500;
     int cuda_stack_size = 2000;
     int thread_per_block = 32;
 
@@ -197,11 +228,11 @@ void run() {
 
     double kernel_time;
 
-    cuds::length_t old_old_rules_size = 0;
-    cuds::length_t old_old_facts_size = 0;
+    std::size_t old_old_rules_size = 0;
+    std::size_t old_old_facts_size = 0;
     while (true) {
-        cuds::length_t old_rules_size = rules.size();
-        cuds::length_t old_facts_size = facts.size();
+        std::size_t old_rules_size = rules.size();
+        std::size_t old_facts_size = facts.size();
 
         cuds::rule_t** rules_d;
         cuds::rule_t** facts_d;
