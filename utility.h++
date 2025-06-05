@@ -46,6 +46,25 @@ namespace cuds {
         CHECK_CUDA_ERROR(cudaMemcpy(d_ptr, h_ptr.get(), h_ptr->data_size(), cudaMemcpyHostToDevice));
         return unique_cuda_malloc_ptr<cuds::rule_t>(d_ptr);
     }
+
+    template<typename T>
+    __global__ void copy_device_to_host_helper_get_data_size(length_t* data_size, T* ptr) {
+        *data_size = ptr->data_size();
+    }
+
+    template<typename T>
+    unique_malloc_ptr<T> copy_device_to_host(unique_cuda_malloc_ptr<T>& d_ptr) {
+        length_t* data_size_d;
+        CHECK_CUDA_ERROR(cudaMalloc(&data_size_d, sizeof(length_t)));
+        copy_device_to_host_helper_get_data_size<<<1, 1>>>(data_size_d, d_ptr.get());
+        CHECK_CUDA_ERROR(cudaDeviceSynchronize());
+        length_t data_size_h;
+        CHECK_CUDA_ERROR(cudaMemcpy(&data_size_h, data_size_d, sizeof(length_t), cudaMemcpyDeviceToHost));
+        CHECK_CUDA_ERROR(cudaFree(data_size_d));
+        T* h_ptr = reinterpret_cast<T*>(malloc(data_size_h));
+        CHECK_CUDA_ERROR(cudaMemcpy(h_ptr, d_ptr.get(), data_size_h, cudaMemcpyDeviceToHost));
+        return unique_malloc_ptr<cuds::rule_t>(h_ptr);
+    }
 #endif
 
     /// @brief 将文本形式的term转化为二进制形式的term

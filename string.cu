@@ -1,4 +1,5 @@
 #include "cuda_compact.h++"
+#include "helper.h++"
 #include "string.h++"
 
 namespace cuds {
@@ -7,7 +8,7 @@ namespace cuds {
     }
 
     CUDA_HOST_DEVICE char* string_t::string_pointer() {
-        return reinterpret_cast<char*>(reinterpret_cast<std::byte*>(this) + sizeof(length_t));
+        return with_offset<char>(this, sizeof(length_t));
     }
 
     CUDA_HOST_DEVICE length_t string_t::get_length() {

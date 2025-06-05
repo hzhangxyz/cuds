@@ -9,7 +9,7 @@ namespace cuds {
     }
 
     void CudaMallocDeleter::operator()(void* ptr) const {
-        cudaFree(ptr);
+        CHECK_CUDA_ERROR(cudaFree(ptr));
     }
 
     unique_malloc_ptr<term_t> text_to_term(const char* text, length_t length) {

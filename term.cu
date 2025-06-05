@@ -1,3 +1,4 @@
+#include "helper.h++"
 #include "item.h++"
 #include "list.h++"
 #include "term.h++"
@@ -45,7 +46,7 @@ namespace cuds {
 
     CUDA_HOST_DEVICE variable_t* term_t::variable() {
         if (get_type() == term_type_t::variable) {
-            return reinterpret_cast<variable_t*>(reinterpret_cast<std::byte*>(this) + sizeof(term_type_t));
+            return with_offset<variable_t>(this, sizeof(term_type_t));
         } else {
             return nullptr;
         }
@@ -53,7 +54,7 @@ namespace cuds {
 
     CUDA_HOST_DEVICE item_t* term_t::item() {
         if (get_type() == term_type_t::item) {
-            return reinterpret_cast<item_t*>(reinterpret_cast<std::byte*>(this) + sizeof(term_type_t));
+            return with_offset<item_t>(this, sizeof(term_type_t));
         } else {
             return nullptr;
         }
@@ -61,7 +62,7 @@ namespace cuds {
 
     CUDA_HOST_DEVICE list_t* term_t::list() {
         if (get_type() == term_type_t::list) {
-            return reinterpret_cast<list_t*>(reinterpret_cast<std::byte*>(this) + sizeof(term_type_t));
+            return with_offset<list_t>(this, sizeof(term_type_t));
         } else {
             return nullptr;
         }

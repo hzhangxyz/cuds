@@ -1,5 +1,6 @@
 #include "config.h++"
 #include "cuda_compact.h++"
+#include "helper.h++"
 #include "item.h++"
 #include "list.h++"
 #include "string.h++"
@@ -14,6 +15,7 @@
 #include <map>
 #include <set>
 
+// TODO: check out of bound
 // TODO: manual stack
 // TODO: container on CUDA
 
@@ -36,58 +38,123 @@ enum class match_flag_t {
     found = 4
 };
 
-__global__ void match(
-    match_flag_t* flag,
-    cuds::length_t* size,
-    cuds::rule_t* result,
-    cuds::length_t threshold,
-    cuds::rule_t* rule_1,
-    cuds::rule_t* rule_2,
+struct match_result_t {
+    match_flag_t flag;
+    cuds::length_t size;
+};
+
+__device__ void match(
+    match_result_t* match_result,
+    cuds::rule_t* rule_result,
+    cuds::length_t result_size_threshold,
+    cuds::rule_t* rule,
+    cuds::rule_t* fact,
     cuds::rule_t** rules,
     cuds::length_t rules_size,
     cuds::rule_t** facts,
     cuds::length_t facts_size,
     cuds::rule_t* target
 ) {
-    result->match(rule_1, rule_2);
-    if (!result->valid()) {
-        *flag = match_flag_t::fail;
+    rule_result->match(rule, fact);
+    if (!rule_result->valid()) {
+        match_result->flag = match_flag_t::fail;
         return;
     }
-    if (result->data_size() > threshold) {
-        *flag = match_flag_t::fail;
+    if (rule_result->data_size() > result_size_threshold) {
+        match_result->flag = match_flag_t::fail;
         return;
     }
-    if (result->premises_count() != 0) {
+    if (rule_result->premises_count() != 0) {
         // rule
         for (cuds::length_t rule_index = 0; rule_index < rules_size; ++rule_index) {
             cuds::rule_t* old_rule = rules[rule_index];
-            if (rule_equal(old_rule, result)) {
-                *flag = match_flag_t::fail;
+            if (rule_equal(old_rule, rule_result)) {
+                match_result->flag = match_flag_t::fail;
                 return;
             }
         }
-        *flag = match_flag_t::rule;
-        *size = result->data_size();
+        match_result->flag = match_flag_t::rule;
+        match_result->size = rule_result->data_size();
     } else {
         // fact
         for (cuds::length_t fact_index = 0; fact_index < facts_size; ++fact_index) {
             cuds::rule_t* old_fact = facts[fact_index];
-            if (rule_equal(old_fact, result)) {
-                *flag = match_flag_t::fail;
+            if (rule_equal(old_fact, rule_result)) {
+                match_result->flag = match_flag_t::fail;
                 return;
             }
         }
-        *flag = match_flag_t::fact;
-        *size = result->data_size();
-        if (rule_equal(target, result)) {
-            *flag = match_flag_t::found;
+        match_result->flag = match_flag_t::fact;
+        match_result->size = rule_result->data_size();
+        if (rule_equal(target, rule_result)) {
+            match_result->flag = match_flag_t::found;
         }
     }
 }
 
+__global__ void process(
+    match_result_t* match_result_pool,
+    cuds::rule_t* rule_result_pool,
+    cuds::length_t single_result_size,
+    cuds::length_t single_result_size_threshold,
+    cuds::rule_t** rules,
+    cuds::length_t old_old_rules_size,
+    cuds::length_t old_rules_size,
+    cuds::rule_t** facts,
+    cuds::length_t old_old_facts_size,
+    cuds::length_t old_facts_size,
+    cuds::rule_t* target
+) {
+    int thread_count = int(old_rules_size) * int(old_facts_size) - int(old_old_rules_size) * int(old_old_facts_size);
+    int thread_index = (blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.z * blockDim.y * blockDim.x) +
+                       (threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x);
+
+    if (thread_index >= thread_count) {
+        return;
+    }
+
+    int rule_index;
+    int fact_index;
+    if (thread_index < (old_rules_size - old_old_rules_size) * old_facts_size) {
+        rule_index = thread_index / old_facts_size + old_old_rules_size;
+        fact_index = thread_index % old_facts_size;
+    } else {
+        int temp_index = thread_index - (old_rules_size - old_old_rules_size) * old_facts_size;
+        rule_index = temp_index % old_old_rules_size;
+        fact_index = temp_index / old_old_rules_size + old_old_facts_size;
+    }
+
+    if (thread_index == 0) {
+        match_result_pool[thread_count].flag = match_flag_t::null;
+    }
+
+    match_result_t* match_result = &match_result_pool[thread_index];
+    cuds::rule_t* rule_result = cuds::with_offset(rule_result_pool, thread_index * single_result_size);
+    match(
+        match_result,
+        rule_result,
+        single_result_size_threshold,
+        rules[rule_index],
+        facts[fact_index],
+        rules,
+        old_rules_size,
+        facts,
+        old_facts_size,
+        target
+    );
+
+    if (match_result->flag == match_flag_t::found) {
+        match_result_pool[thread_count].flag = match_flag_t::found;
+    }
+}
+
 void run() {
-    cudaDeviceSetLimit(cudaLimitStackSize, 2000);
+    int single_result_size = 32000;
+    int single_result_size_threshold = 80;
+    int cuda_stack_size = 2000;
+    int thread_per_block = 32;
+
+    CHECK_CUDA_ERROR(cudaDeviceSetLimit(cudaLimitStackSize, cuda_stack_size));
 
     // P -> Q, P |- Q
     auto mp = cuds::text_to_rule(
@@ -128,77 +195,83 @@ void run() {
     facts.push_back(copy_host_to_device(premise));
     cuds::unique_cuda_malloc_ptr<cuds::rule_t> target_d = copy_host_to_device(target);
 
+    double kernel_time;
+
     cuds::length_t old_old_rules_size = 0;
     cuds::length_t old_old_facts_size = 0;
     while (true) {
         cuds::length_t old_rules_size = rules.size();
         cuds::length_t old_facts_size = facts.size();
 
-        cuds::rule_t** device_rules;
-        cuds::rule_t** device_facts;
-        CHECK_CUDA_ERROR(cudaMalloc(&device_rules, old_rules_size * sizeof(cuds::rule_t*)));
-        CHECK_CUDA_ERROR(cudaMemcpy(device_rules, rules.data(), old_rules_size * sizeof(cuds::rule_t*), cudaMemcpyHostToDevice));
-        CHECK_CUDA_ERROR(cudaMalloc(&device_facts, old_facts_size * sizeof(cuds::rule_t*)));
-        CHECK_CUDA_ERROR(cudaMemcpy(device_facts, facts.data(), old_facts_size * sizeof(cuds::rule_t*), cudaMemcpyHostToDevice));
+        cuds::rule_t** rules_d;
+        cuds::rule_t** facts_d;
+        CHECK_CUDA_ERROR(cudaMalloc(&rules_d, old_rules_size * sizeof(cuds::rule_t*)));
+        CHECK_CUDA_ERROR(cudaMemcpy(rules_d, rules.data(), old_rules_size * sizeof(cuds::rule_t*), cudaMemcpyHostToDevice));
+        CHECK_CUDA_ERROR(cudaMalloc(&facts_d, old_facts_size * sizeof(cuds::rule_t*)));
+        CHECK_CUDA_ERROR(cudaMemcpy(facts_d, facts.data(), old_facts_size * sizeof(cuds::rule_t*), cudaMemcpyHostToDevice));
 
-        for (cuds::length_t rule_index = 0; rule_index < old_rules_size; ++rule_index) {
-            for (cuds::length_t fact_index = 0; fact_index < old_facts_size; ++fact_index) {
-                if (rule_index < old_old_rules_size && fact_index < old_old_facts_size) {
-                    continue;
+        int thread_count = int(old_rules_size) * int(old_facts_size) - int(old_old_rules_size) * int(old_old_facts_size);
+
+        match_result_t* match_result_pool_d;
+        CHECK_CUDA_ERROR(cudaMalloc(&match_result_pool_d, sizeof(match_result_t) * (thread_count + 1)));
+        cuds::rule_t* result_pool_d;
+        CHECK_CUDA_ERROR(cudaMalloc(&result_pool_d, single_result_size * thread_count));
+
+        auto start = std::chrono::high_resolution_clock::now();
+        process<<<(thread_count + thread_per_block - 1) / thread_per_block, thread_per_block>>>(
+            match_result_pool_d,
+            result_pool_d,
+            single_result_size,
+            single_result_size_threshold,
+            rules_d,
+            old_old_rules_size,
+            old_rules_size,
+            facts_d,
+            old_old_facts_size,
+            old_facts_size,
+            target_d.get()
+        );
+        CHECK_CUDA_ERROR(cudaDeviceSynchronize());
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = end - start;
+        kernel_time += duration.count();
+
+        match_result_t* match_result_pool_h = reinterpret_cast<match_result_t*>(malloc(sizeof(match_result_t) * (thread_count + 1)));
+        CHECK_CUDA_ERROR(cudaMemcpy(match_result_pool_h, match_result_pool_d, sizeof(match_result_t) * (thread_count + 1), cudaMemcpyDeviceToHost));
+
+        if (match_result_pool_h[thread_count].flag == match_flag_t::found) {
+            printf("Found!\n");
+            printf("Kernel time: %lf seconds\n", kernel_time);
+            printf("Last thread count: %d\n", thread_count);
+            return;
+        }
+
+        for (int thread_index = 0; thread_index < thread_count; ++thread_index) {
+            match_result_t* match_result_h = &match_result_pool_h[thread_index];
+            if (match_result_h->flag == match_flag_t::fact || match_result_h->flag == match_flag_t::rule) {
+                cuds::rule_t* result_n;
+                CHECK_CUDA_ERROR(cudaMalloc(&result_n, match_result_h->size));
+                CHECK_CUDA_ERROR(cudaMemcpy(
+                    result_n,
+                    cuds::with_offset(result_pool_d, single_result_size * thread_index),
+                    match_result_h->size,
+                    cudaMemcpyDeviceToDevice
+                ));
+
+                if (match_result_h->flag == match_flag_t::rule) {
+                    // rule
+                    rules.emplace_back(result_n);
+                } else {
+                    // fact
+                    facts.emplace_back(result_n);
                 }
-
-                cuds::rule_t* result_d;
-                CHECK_CUDA_ERROR(cudaMalloc(&result_d, 32000));
-                match_flag_t* flag_d;
-                CHECK_CUDA_ERROR(cudaMalloc(&flag_d, sizeof(match_flag_t)));
-                cuds::length_t* size_d;
-                CHECK_CUDA_ERROR(cudaMalloc(&size_d, sizeof(cuds::length_t)));
-
-                match<<<1, 1>>>(
-                    flag_d,
-                    size_d,
-                    result_d,
-                    80,
-                    rules[rule_index].get(),
-                    facts[fact_index].get(),
-                    device_rules,
-                    old_rules_size,
-                    device_facts,
-                    old_facts_size,
-                    target_d.get()
-                );
-
-                cuds::length_t size_h;
-                cudaMemcpy(&size_h, size_d, sizeof(cuds::length_t), cudaMemcpyDeviceToHost);
-                match_flag_t flag_h;
-                cudaMemcpy(&flag_h, flag_d, sizeof(match_flag_t), cudaMemcpyDeviceToHost);
-
-                CHECK_CUDA_ERROR(cudaFree(size_d));
-                CHECK_CUDA_ERROR(cudaFree(flag_d));
-                if (flag_h == match_flag_t::found) {
-                    printf("Found!\n");
-                    CHECK_CUDA_ERROR(cudaFree(result_d));
-                    return;
-                }
-                if (flag_h == match_flag_t::fact || flag_h == match_flag_t::rule) {
-                    cuds::rule_t* result_n;
-                    CHECK_CUDA_ERROR(cudaMalloc(&result_n, size_h));
-                    CHECK_CUDA_ERROR(cudaMemcpy(result_n, result_d, size_h, cudaMemcpyDeviceToDevice));
-
-                    if (flag_h == match_flag_t::rule) {
-                        // rule
-                        rules.emplace_back(result_n);
-                    } else {
-                        // fact
-                        facts.emplace_back(result_n);
-                    }
-                }
-                CHECK_CUDA_ERROR(cudaFree(result_d));
             }
         }
 
-        CHECK_CUDA_ERROR(cudaFree(device_rules));
-        CHECK_CUDA_ERROR(cudaFree(device_facts));
+        CHECK_CUDA_ERROR(cudaFree(match_result_pool_d));
+
+        CHECK_CUDA_ERROR(cudaFree(rules_d));
+        CHECK_CUDA_ERROR(cudaFree(facts_d));
 
         old_old_rules_size = old_rules_size;
         old_old_facts_size = old_facts_size;
@@ -215,6 +288,7 @@ void timer(std::function<void()> func) {
 
 int main() {
     timer(run);
-    std::cout << "Run again...\n" << std::flush;
+    timer(run);
+    timer(run);
     timer(run);
 }

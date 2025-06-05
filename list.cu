@@ -1,4 +1,5 @@
 #include "cuda_compact.h++"
+#include "helper.h++"
 #include "list.h++"
 #include "term.h++"
 
@@ -8,16 +9,16 @@ namespace cuds {
     }
 
     CUDA_HOST_DEVICE length_t* list_t::term_size_pointer(length_t index) {
-        return reinterpret_cast<length_t*>(reinterpret_cast<std::byte*>(this) + sizeof(length_t) + sizeof(length_t) * index);
+        return with_offset<length_t>(this, sizeof(length_t) + sizeof(length_t) * index);
     }
 
     CUDA_HOST_DEVICE term_t* list_t::term_pointer(length_t index) {
         if (index == 0) {
-            return reinterpret_cast<term_t*>(term_size_pointer(get_list_size()));
+            return with_offset<term_t>(term_size_pointer(get_list_size()));
         } else if (index < 0 || index >= get_list_size()) {
             return nullptr;
         } else {
-            return reinterpret_cast<term_t*>(reinterpret_cast<std::byte*>(term_size_pointer(get_list_size())) + term_size(index - 1));
+            return with_offset<term_t>(term_size_pointer(get_list_size()), term_size(index - 1));
         }
     }
 
