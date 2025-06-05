@@ -14,7 +14,6 @@
 #include <map>
 #include <set>
 
-// TODO: check out of bound
 // TODO: manual stack
 // TODO: container on CUDA
 
