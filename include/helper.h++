@@ -3,6 +3,9 @@
 
 #include "config.h++"
 
+#include <type_traits>
+#include <cstddef>
+
 namespace cuds {
     template<typename R = void, typename T>
     CUDA_HOST_DEVICE auto with_offset(T* ptr, std::size_t offset = 0) {

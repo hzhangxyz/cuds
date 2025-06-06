@@ -47,8 +47,8 @@ enum class match_flag_t {
 struct match_result_t {
     /// @brief 包含了成功与否, 以及是fact还是rule等信息
     match_flag_t flag;
-    /// @brief 结果rule的大小
-    cuds::length_t size;
+    /// @brief 结果rule的大小, 由于有时候也用来顺便存储指标, 所以不是length_t而是更大的size_t
+    std::size_t size;
 };
 
 /// @brief 将rule和fact进行匹配的核函数
@@ -183,10 +183,13 @@ __global__ void process(
 
     if (match_result->flag == match_flag_t::found) {
         match_result_pool[local_job_count].flag = match_flag_t::found;
+        match_result_pool[local_job_count].size = local_thread_index;
     }
 }
 
 void run() {
+    int temp_data_size = 1000;
+    int temp_text_size = 1000;
     int single_result_size = 30000;
     int single_result_size_threshold = 2000;
     int cuda_stack_size = 2000;
@@ -201,29 +204,29 @@ void run() {
         "'P\n"
         "----------\n"
         "'Q",
-        1000
+        temp_data_size
     );
     // p -> (q -> p)
     auto axiom1 = cuds::text_to_rule(
         "------------------\n"
         "('p -> ('q -> 'p))\n",
-        1000
+        temp_data_size
     );
     // (p -> (q -> r)) -> ((p -> q) -> (p -> r))
     auto axiom2 = cuds::text_to_rule(
         "--------------------------------------------------\n"
         "(('p -> ('q -> 'r)) -> (('p -> 'q) -> ('p -> 'r)))\n",
-        1000
+        temp_data_size
     );
     // (!p -> !q) -> (q -> p)
     auto axiom3 = cuds::text_to_rule(
         "----------------------------------\n"
         "(((! 'p) -> (! 'q)) -> ('q -> 'p))\n",
-        1000
+        temp_data_size
     );
 
-    auto premise = cuds::text_to_rule("(! (! X))", 1000);
-    auto target = cuds::text_to_rule("X", 1000);
+    auto premise = cuds::text_to_rule("(! (! X))", temp_data_size);
+    auto target = cuds::text_to_rule("X", temp_data_size);
 
     std::vector<cuds::unique_cuda_malloc_ptr<cuds::rule_t>> rules;
     std::vector<cuds::unique_cuda_malloc_ptr<cuds::rule_t>> facts;
@@ -288,9 +291,23 @@ void run() {
             );
 
             if (match_result_pool_h[local_job_count].flag == match_flag_t::found) {
+                std::size_t job_index = match_result_pool_h[local_job_count].size;
+                match_result_t* match_result_h = &match_result_pool_h[job_index];
+                cuds::rule_t* result_n = reinterpret_cast<cuds::rule_t*>(malloc(match_result_h->size));
+                CHECK_CUDA_ERROR(cudaMemcpy(
+                    result_n,
+                    cuds::with_offset(rule_result_pool_d, single_result_size * job_index),
+                    match_result_h->size,
+                    cudaMemcpyDeviceToHost
+                ));
+                char* text_n = reinterpret_cast<char*>(malloc(temp_text_size));
+                *(result_n->print(text_n)) = 0;
                 printf("Found!\n");
+                printf("%s", text_n);
                 printf("Last job count: %d\n", global_job_count);
                 printf("Kernel time: %lf seconds\n", kernel_time);
+                free(text_n);
+                free(result_n);
                 free(match_result_pool_h);
                 CHECK_CUDA_ERROR(cudaFree(rule_result_pool_d));
                 CHECK_CUDA_ERROR(cudaFree(match_result_pool_d));
