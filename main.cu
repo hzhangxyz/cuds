@@ -19,7 +19,7 @@
 // TODO: check out of bound
 // TODO: manual stack
 // TODO: container on CUDA
-// TODO: batch call for many thread
+// TODO: unification algorithm need to be updated
 
 /// @brief 验证两个rule是否相等
 /// @param rule_1 第一个rule
@@ -116,6 +116,7 @@ __device__ void match(
 /// @param rule_result_pool 产出对象池
 /// @param single_result_size 产出对象池中单个对象的大小
 /// @param single_result_size_threshold 产出对象的截断大小
+/// @param local_index_offset 单次调用的任务指标偏移
 /// @param rules 用于去重的rules合集
 /// @param old_old_rules_size 老rules合集的大小
 /// @param old_rules_size 匹配前rules合集的大小
@@ -128,6 +129,7 @@ __global__ void process(
     cuds::rule_t* rule_result_pool,
     cuds::length_t single_result_size,
     cuds::length_t single_result_size_threshold,
+    std::size_t local_index_offset,
     cuds::rule_t** rules,
     std::size_t old_old_rules_size,
     std::size_t old_rules_size,
@@ -136,31 +138,36 @@ __global__ void process(
     std::size_t old_facts_size,
     cuds::rule_t* target
 ) {
-    std::size_t thread_count = old_rules_size * old_facts_size - old_old_rules_size * old_old_facts_size;
-    std::size_t thread_index = (blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.z * blockDim.y * blockDim.x) +
-                               (threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x);
+    std::size_t local_thread_count = gridDim.x * gridDim.y * gridDim.z * blockDim.x * blockDim.y * blockDim.z;
+    std::size_t local_thread_index =
+        (blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.z * blockDim.y * blockDim.x) +
+        (threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x);
+    std::size_t global_job_count = old_rules_size * old_facts_size - old_old_rules_size * old_old_facts_size;
+    std::size_t global_job_index = local_thread_index + local_index_offset;
+    std::size_t remained_job_count = global_job_count - local_index_offset;
+    std::size_t local_job_count = local_thread_count > remained_job_count ? remained_job_count : local_thread_count;
 
-    if (thread_index >= thread_count) {
+    if (global_job_index >= global_job_count) {
         return;
+    }
+
+    if (local_thread_index == 0) {
+        match_result_pool[local_job_count].flag = match_flag_t::null;
     }
 
     std::size_t rule_index;
     std::size_t fact_index;
-    if (thread_index < (old_rules_size - old_old_rules_size) * old_facts_size) {
-        rule_index = thread_index / old_facts_size + old_old_rules_size;
-        fact_index = thread_index % old_facts_size;
+    if (global_job_index < (old_rules_size - old_old_rules_size) * old_facts_size) {
+        rule_index = global_job_index / old_facts_size + old_old_rules_size;
+        fact_index = global_job_index % old_facts_size;
     } else {
-        std::size_t temp_index = thread_index - (old_rules_size - old_old_rules_size) * old_facts_size;
+        std::size_t temp_index = global_job_index - (old_rules_size - old_old_rules_size) * old_facts_size;
         rule_index = temp_index % old_old_rules_size;
         fact_index = temp_index / old_old_rules_size + old_old_facts_size;
     }
 
-    if (thread_index == 0) {
-        match_result_pool[thread_count].flag = match_flag_t::null;
-    }
-
-    match_result_t* match_result = &match_result_pool[thread_index];
-    cuds::rule_t* rule_result = cuds::with_offset(rule_result_pool, thread_index * single_result_size);
+    match_result_t* match_result = &match_result_pool[local_thread_index];
+    cuds::rule_t* rule_result = cuds::with_offset(rule_result_pool, local_thread_index * single_result_size);
     match(
         match_result,
         rule_result,
@@ -175,15 +182,16 @@ __global__ void process(
     );
 
     if (match_result->flag == match_flag_t::found) {
-        match_result_pool[thread_count].flag = match_flag_t::found;
+        match_result_pool[local_job_count].flag = match_flag_t::found;
     }
 }
 
 void run() {
-    int single_result_size = 10000;
-    int single_result_size_threshold = 500;
+    int single_result_size = 30000;
+    int single_result_size_threshold = 2000;
     int cuda_stack_size = 2000;
-    int thread_per_block = 32;
+    int max_block_per_call = 4000;
+    int thread_per_block = 16;
 
     CHECK_CUDA_ERROR(cudaDeviceSetLimit(cudaLimitStackSize, cuda_stack_size));
 
@@ -226,7 +234,7 @@ void run() {
     facts.push_back(copy_host_to_device(premise));
     cuds::unique_cuda_malloc_ptr<cuds::rule_t> target_d = copy_host_to_device(target);
 
-    double kernel_time;
+    double kernel_time = 0;
 
     std::size_t old_old_rules_size = 0;
     std::size_t old_old_facts_size = 0;
@@ -241,71 +249,90 @@ void run() {
         CHECK_CUDA_ERROR(cudaMalloc(&facts_d, old_facts_size * sizeof(cuds::rule_t*)));
         CHECK_CUDA_ERROR(cudaMemcpy(facts_d, facts.data(), old_facts_size * sizeof(cuds::rule_t*), cudaMemcpyHostToDevice));
 
-        int thread_count = int(old_rules_size) * int(old_facts_size) - int(old_old_rules_size) * int(old_old_facts_size);
+        std::size_t global_job_count = old_rules_size * old_facts_size - old_old_rules_size * old_old_facts_size;
+        std::size_t max_thread_per_call = max_block_per_call * thread_per_block;
+        for (std::size_t local_index_offset = 0; local_index_offset < global_job_count; local_index_offset += max_thread_per_call) {
+            printf(".");
+            std::size_t remained_job_count = global_job_count - local_index_offset;
+            std::size_t local_job_count = remained_job_count < max_thread_per_call ? remained_job_count : max_thread_per_call;
+            std::size_t block_count = (local_job_count + thread_per_block - 1) / thread_per_block;
 
-        match_result_t* match_result_pool_d;
-        CHECK_CUDA_ERROR(cudaMalloc(&match_result_pool_d, sizeof(match_result_t) * (thread_count + 1)));
-        cuds::rule_t* result_pool_d;
-        CHECK_CUDA_ERROR(cudaMalloc(&result_pool_d, single_result_size * thread_count));
+            match_result_t* match_result_pool_d;
+            CHECK_CUDA_ERROR(cudaMalloc(&match_result_pool_d, sizeof(match_result_t) * (local_job_count + 1)));
+            cuds::rule_t* rule_result_pool_d;
+            CHECK_CUDA_ERROR(cudaMalloc(&rule_result_pool_d, single_result_size * local_job_count));
 
-        auto start = std::chrono::high_resolution_clock::now();
-        process<<<(thread_count + thread_per_block - 1) / thread_per_block, thread_per_block>>>(
-            match_result_pool_d,
-            result_pool_d,
-            single_result_size,
-            single_result_size_threshold,
-            rules_d,
-            old_old_rules_size,
-            old_rules_size,
-            facts_d,
-            old_old_facts_size,
-            old_facts_size,
-            target_d.get()
-        );
-        CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> duration = end - start;
-        kernel_time += duration.count();
+            auto start = std::chrono::high_resolution_clock::now();
+            process<<<block_count, thread_per_block>>>(
+                match_result_pool_d,
+                rule_result_pool_d,
+                single_result_size,
+                single_result_size_threshold,
+                local_index_offset,
+                rules_d,
+                old_old_rules_size,
+                old_rules_size,
+                facts_d,
+                old_old_facts_size,
+                old_facts_size,
+                target_d.get()
+            );
+            CHECK_CUDA_ERROR(cudaDeviceSynchronize());
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> duration = end - start;
+            kernel_time += duration.count();
 
-        match_result_t* match_result_pool_h = reinterpret_cast<match_result_t*>(malloc(sizeof(match_result_t) * (thread_count + 1)));
-        CHECK_CUDA_ERROR(cudaMemcpy(match_result_pool_h, match_result_pool_d, sizeof(match_result_t) * (thread_count + 1), cudaMemcpyDeviceToHost));
+            match_result_t* match_result_pool_h = reinterpret_cast<match_result_t*>(malloc(sizeof(match_result_t) * (local_job_count + 1)));
+            CHECK_CUDA_ERROR(
+                cudaMemcpy(match_result_pool_h, match_result_pool_d, sizeof(match_result_t) * (local_job_count + 1), cudaMemcpyDeviceToHost)
+            );
 
-        if (match_result_pool_h[thread_count].flag == match_flag_t::found) {
-            printf("Found!\n");
-            printf("Kernel time: %lf seconds\n", kernel_time);
-            printf("Last thread count: %d\n", thread_count);
-            return;
-        }
+            if (match_result_pool_h[local_job_count].flag == match_flag_t::found) {
+                printf("Found!\n");
+                printf("Last job count: %d\n", global_job_count);
+                printf("Kernel time: %lf seconds\n", kernel_time);
+                free(match_result_pool_h);
+                CHECK_CUDA_ERROR(cudaFree(rule_result_pool_d));
+                CHECK_CUDA_ERROR(cudaFree(match_result_pool_d));
+                CHECK_CUDA_ERROR(cudaFree(rules_d));
+                CHECK_CUDA_ERROR(cudaFree(facts_d));
+                return;
+            }
 
-        for (int thread_index = 0; thread_index < thread_count; ++thread_index) {
-            match_result_t* match_result_h = &match_result_pool_h[thread_index];
-            if (match_result_h->flag == match_flag_t::fact || match_result_h->flag == match_flag_t::rule) {
-                cuds::rule_t* result_n;
-                CHECK_CUDA_ERROR(cudaMalloc(&result_n, match_result_h->size));
-                CHECK_CUDA_ERROR(cudaMemcpy(
-                    result_n,
-                    cuds::with_offset(result_pool_d, single_result_size * thread_index),
-                    match_result_h->size,
-                    cudaMemcpyDeviceToDevice
-                ));
+            for (int job_index = 0; job_index < local_job_count; ++job_index) {
+                match_result_t* match_result_h = &match_result_pool_h[job_index];
+                if (match_result_h->flag == match_flag_t::fact || match_result_h->flag == match_flag_t::rule) {
+                    cuds::rule_t* result_n;
+                    CHECK_CUDA_ERROR(cudaMalloc(&result_n, match_result_h->size));
+                    CHECK_CUDA_ERROR(cudaMemcpy(
+                        result_n,
+                        cuds::with_offset(rule_result_pool_d, single_result_size * job_index),
+                        match_result_h->size,
+                        cudaMemcpyDeviceToDevice
+                    ));
 
-                if (match_result_h->flag == match_flag_t::rule) {
-                    // rule
-                    rules.emplace_back(result_n);
-                } else {
-                    // fact
-                    facts.emplace_back(result_n);
+                    if (match_result_h->flag == match_flag_t::rule) {
+                        // rule
+                        rules.emplace_back(result_n);
+                    } else {
+                        // fact
+                        facts.emplace_back(result_n);
+                    }
                 }
             }
-        }
 
-        CHECK_CUDA_ERROR(cudaFree(match_result_pool_d));
+            free(match_result_pool_h);
+            CHECK_CUDA_ERROR(cudaFree(rule_result_pool_d));
+            CHECK_CUDA_ERROR(cudaFree(match_result_pool_d));
+        }
 
         CHECK_CUDA_ERROR(cudaFree(rules_d));
         CHECK_CUDA_ERROR(cudaFree(facts_d));
 
         old_old_rules_size = old_rules_size;
         old_old_facts_size = old_facts_size;
+
+        printf("\n");
     }
 }
 
@@ -318,8 +345,7 @@ void timer(std::function<void()> func) {
 }
 
 int main() {
-    timer(run);
-    timer(run);
-    timer(run);
-    timer(run);
+    for (auto i = 0; i < 10; ++i) {
+        timer(run);
+    }
 }
