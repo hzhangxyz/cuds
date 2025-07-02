@@ -15,6 +15,8 @@ namespace ds {
     term_t* list_t::term_pointer(length_t index) {
         if (index == 0) {
             return reinterpret_cast<term_t*>(term_size_pointer(get_list_size()));
+        } else if (index < 0 || index >= get_list_size()) {
+            return nullptr;
         } else {
             return reinterpret_cast<term_t*>(reinterpret_cast<std::byte*>(term_size_pointer(get_list_size())) + term_size(index - 1));
         }
