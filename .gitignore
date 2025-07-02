@@ -1,6 +1,10 @@
 *.out
 *.o
+*.egg-info
+*.so
+__pycache__
 .cache
 .vscode
 build
 compile_commands.json
+pyds/_version.py

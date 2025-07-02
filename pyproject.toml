@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "pybind11", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyds"
+dynamic = ["version"]
+dependencies = []
+requires-python = ">=3"
+authors = [{ email = "hzhangxyz@outlook.com", name = "Hao Zhang" }]
+description = "A deductive system"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+
+[tool.setuptools_scm]
+version_file = "pyds/_version.py"
+version_scheme = "no-guess-dev"
+fallback_version = "0.0.0"
+
+[tool.setuptools.packages.find]
+include = ["pyds"]
