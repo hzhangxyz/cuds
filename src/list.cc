@@ -1,7 +1,7 @@
-#include "list.hh"
-#include "term.hh"
-
 #include <cstring>
+
+#include <ds/list.hh>
+#include <ds/term.hh>
 
 namespace ds {
     length_t* list_t::list_size_pointer() {

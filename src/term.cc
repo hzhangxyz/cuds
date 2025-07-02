@@ -1,9 +1,9 @@
-#include "term.hh"
-#include "item.hh"
-#include "list.hh"
-#include "variable.hh"
-
 #include <cstddef>
+
+#include <ds/item.hh>
+#include <ds/list.hh>
+#include <ds/term.hh>
+#include <ds/variable.hh>
 
 namespace ds {
     term_type_t* term_t::type_pointer() {

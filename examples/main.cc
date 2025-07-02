@@ -1,11 +1,3 @@
-#include "config.hh"
-#include "item.hh"
-#include "list.hh"
-#include "string.hh"
-#include "term.hh"
-#include "utility.hh"
-#include "variable.hh"
-
 #include <chrono>
 #include <cstring>
 #include <functional>
@@ -13,9 +5,13 @@
 #include <map>
 #include <set>
 
-// TODO: check out of bound
-// TODO: manual stack
-// TODO: unification algorithm need to be updated
+#include <ds/config.hh>
+#include <ds/item.hh>
+#include <ds/list.hh>
+#include <ds/string.hh>
+#include <ds/term.hh>
+#include <ds/utility.hh>
+#include <ds/variable.hh>
 
 struct PointerLess {
     template<typename T>

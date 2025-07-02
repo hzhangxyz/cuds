@@ -1,12 +1,12 @@
 #include <pybind11/pybind11.h>
 
-#include <item.hh>
-#include <list.hh>
-#include <rule.hh>
-#include <string.hh>
-#include <term.hh>
-#include <utility.hh>
-#include <variable.hh>
+#include <ds/item.hh>
+#include <ds/list.hh>
+#include <ds/rule.hh>
+#include <ds/string.hh>
+#include <ds/term.hh>
+#include <ds/utility.hh>
+#include <ds/variable.hh>
 
 namespace py = pybind11;
 

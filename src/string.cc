@@ -1,6 +1,6 @@
-#include "string.hh"
-
 #include <cstring>
+
+#include <ds/string.hh>
 
 namespace ds {
     length_t* string_t::length_pointer() {

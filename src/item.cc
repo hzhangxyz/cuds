@@ -1,4 +1,4 @@
-#include "item.hh"
+#include <ds/item.hh>
 
 namespace ds {
     string_t* item_t::name() {

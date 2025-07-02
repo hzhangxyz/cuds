@@ -1,10 +1,10 @@
-#include "item.hh"
-#include "list.hh"
-#include "rule.hh"
-#include "term.hh"
-#include "variable.hh"
-
 #include <cstring>
+
+#include <ds/item.hh>
+#include <ds/list.hh>
+#include <ds/rule.hh>
+#include <ds/term.hh>
+#include <ds/variable.hh>
 
 namespace ds {
     term_t* term_t::ground(term_t* term, term_t* dictionary, std::byte* check_tail) {

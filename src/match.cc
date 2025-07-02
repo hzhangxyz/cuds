@@ -1,11 +1,11 @@
-#include "item.hh"
-#include "list.hh"
-#include "rule.hh"
-#include "string.hh"
-#include "term.hh"
-#include "variable.hh"
-
 #include <cstring>
+
+#include <ds/item.hh>
+#include <ds/list.hh>
+#include <ds/rule.hh>
+#include <ds/string.hh>
+#include <ds/term.hh>
+#include <ds/variable.hh>
 
 namespace ds {
     namespace {

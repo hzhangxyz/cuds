@@ -1,6 +1,6 @@
-#include "rule.hh"
-
 #include <cstring>
+
+#include <ds/rule.hh>
 
 namespace ds {
     term_t* rule_t::conclusion() {

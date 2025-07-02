@@ -1,7 +1,7 @@
-#include "utility.hh"
-#include "list.hh"
-
 #include <cstdlib>
+
+#include <ds/list.hh>
+#include <ds/utility.hh>
 
 namespace ds {
     void MallocDeleter::operator()(void* ptr) const {
