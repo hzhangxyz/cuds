@@ -1,6 +1,6 @@
 #include "variable.h++"
 
-namespace cuds {
+namespace ds {
     string_t* variable_t::name() {
         return reinterpret_cast<string_t*>(this);
     }
@@ -25,4 +25,4 @@ namespace cuds {
     const char* variable_t::scan(const char* buffer) {
         return name()->scan(buffer + 1);
     }
-} // namespace cuds
+} // namespace ds

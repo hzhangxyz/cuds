@@ -1,12 +1,12 @@
-#ifndef CUDS_TERM_HXX
-#define CUDS_TERM_HXX
+#ifndef DS_TERM_HXX
+#define DS_TERM_HXX
 
 #include "config.h++"
 
 #include <cstddef>
 #include <utility>
 
-namespace cuds {
+namespace ds {
     class variable_t;
     class item_t;
     class list_t;
@@ -114,6 +114,6 @@ namespace cuds {
         /// @return 用于第一个term ground的dictionary
         term_t* match(term_t* term_1, term_t* term_2, bool follow_first_for_double_variable);
     };
-} // namespace cuds
+} // namespace ds
 
 #endif

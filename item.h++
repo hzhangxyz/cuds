@@ -1,12 +1,12 @@
-#ifndef CUDS_ITEM_HXX
-#define CUDS_ITEM_HXX
+#ifndef DS_ITEM_HXX
+#define DS_ITEM_HXX
 
 #include "config.h++"
 #include "string.h++"
 
 #include <cstddef>
 
-namespace cuds {
+namespace ds {
     /// @brief item_t对象
     ///
     /// 内存分布:
@@ -40,6 +40,6 @@ namespace cuds {
         /// @return 被输入后的buffer指针
         const char* scan(const char* buffer);
     };
-} // namespace cuds
+} // namespace ds
 
 #endif

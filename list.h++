@@ -1,11 +1,11 @@
-#ifndef CUDS_LIST_HXX
-#define CUDS_LIST_HXX
+#ifndef DS_LIST_HXX
+#define DS_LIST_HXX
 
 #include "config.h++"
 
 #include <cstddef>
 
-namespace cuds {
+namespace ds {
     class term_t;
 
     /// @brief list_t对象
@@ -93,6 +93,6 @@ namespace cuds {
         /// @return 被输入后的buffer指针
         const char* scan(const char* buffer);
     };
-} // namespace cuds
+} // namespace ds
 
 #endif

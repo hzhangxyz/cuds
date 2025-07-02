@@ -6,7 +6,7 @@
 
 #include <cstring>
 
-namespace cuds {
+namespace ds {
     term_t* term_t::ground(term_t* term, term_t* dictionary) {
         if (term->get_type() == term_type_t::variable) {
             char* this_string = term->variable()->name()->get_string();
@@ -55,4 +55,4 @@ namespace cuds {
         ground(rule, dictionary->only_conclusion());
         return this;
     }
-} // namespace cuds
+} // namespace ds

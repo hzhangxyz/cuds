@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-namespace cuds {
+namespace ds {
     term_type_t* term_t::type_pointer() {
         return reinterpret_cast<term_type_t*>(this);
     }
@@ -106,4 +106,4 @@ namespace cuds {
             return set_item()->item()->scan(buffer);
         }
     }
-} // namespace cuds
+} // namespace ds

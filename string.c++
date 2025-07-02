@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace cuds {
+namespace ds {
     length_t* string_t::length_pointer() {
         return reinterpret_cast<length_t*>(this);
     }
@@ -81,4 +81,4 @@ namespace cuds {
         set_length(strlen(get_string()) + 1);
         return src;
     }
-} // namespace cuds
+} // namespace ds

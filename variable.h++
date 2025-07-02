@@ -1,12 +1,12 @@
-#ifndef CUDS_VARIABLE_HXX
-#define CUDS_VARIABLE_HXX
+#ifndef DS_VARIABLE_HXX
+#define DS_VARIABLE_HXX
 
 #include "config.h++"
 #include "string.h++"
 
 #include <cstddef>
 
-namespace cuds {
+namespace ds {
     /// @brief variable_t对象
     ///
     /// 内存分布:
@@ -40,6 +40,6 @@ namespace cuds {
         /// @return 被输入后的buffer指针
         const char* scan(const char* buffer);
     };
-} // namespace cuds
+} // namespace ds
 
 #endif

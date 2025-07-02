@@ -3,7 +3,7 @@
 
 #include <cstring>
 
-namespace cuds {
+namespace ds {
     length_t* list_t::list_size_pointer() {
         return reinterpret_cast<length_t*>(this);
     }
@@ -107,4 +107,4 @@ namespace cuds {
         }
         return buffer;
     }
-} // namespace cuds
+} // namespace ds

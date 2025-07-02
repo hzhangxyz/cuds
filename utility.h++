@@ -1,5 +1,5 @@
-#ifndef CUDS_UTILITY_HXX
-#define CUDS_UTILITY_HXX
+#ifndef DS_UTILITY_HXX
+#define DS_UTILITY_HXX
 
 #include "rule.h++"
 #include "term.h++"
@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <memory>
 
-namespace cuds {
+namespace ds {
     /// @brief 用于给malloc的内存使用的unique_ptr deleter
     struct MallocDeleter {
         void operator()(void* ptr) const;
@@ -77,6 +77,6 @@ namespace cuds {
     /// @param length 结果rule的数据最大长度
     /// @return 结果rule_t对象的指针, 此指针调用方负责free
     unique_malloc_ptr<rule_t> match(rule_t* rule_1, rule_t* rule_2, length_t length);
-} // namespace cuds
+} // namespace ds
 
 #endif

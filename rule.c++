@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace cuds {
+namespace ds {
     term_t* rule_t::conclusion() {
         return term(get_list_size() - 1);
     }
@@ -95,4 +95,4 @@ namespace cuds {
         }
         return buffer;
     }
-} // namespace cuds
+} // namespace ds

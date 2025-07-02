@@ -25,10 +25,10 @@ struct PointerLess {
         if (lhs->data_size() > rhs->data_size()) {
             return false;
         }
-        cuds::length_t data_size = lhs->data_size();
+        ds::length_t data_size = lhs->data_size();
         const std::byte* lhs_data = reinterpret_cast<const std::byte*>(lhs.get());
         const std::byte* rhs_data = reinterpret_cast<const std::byte*>(rhs.get());
-        for (cuds::length_t index = 0; index < data_size; ++index) {
+        for (ds::length_t index = 0; index < data_size; ++index) {
             if (lhs_data[index] < rhs_data[index]) {
                 return true;
             }
@@ -42,7 +42,7 @@ struct PointerLess {
 
 void run() {
     // P -> Q, P |- Q
-    auto mp = cuds::text_to_rule(
+    auto mp = ds::text_to_rule(
         "('P -> 'Q)\n"
         "'P\n"
         "----------\n"
@@ -50,41 +50,41 @@ void run() {
         1000
     );
     // p -> (q -> p)
-    auto axiom1 = cuds::text_to_rule(
+    auto axiom1 = ds::text_to_rule(
         "------------------\n"
         "('p -> ('q -> 'p))\n",
         1000
     );
     // (p -> (q -> r)) -> ((p -> q) -> (p -> r))
-    auto axiom2 = cuds::text_to_rule(
+    auto axiom2 = ds::text_to_rule(
         "--------------------------------------------------\n"
         "(('p -> ('q -> 'r)) -> (('p -> 'q) -> ('p -> 'r)))\n",
         1000
     );
     // (!p -> !q) -> (q -> p)
-    auto axiom3 = cuds::text_to_rule(
+    auto axiom3 = ds::text_to_rule(
         "----------------------------------\n"
         "(((! 'p) -> (! 'q)) -> ('q -> 'p))\n",
         1000
     );
 
-    auto premise = cuds::text_to_rule("(! (! P))", 1000);
-    auto target = cuds::text_to_rule("P", 1000);
+    auto premise = ds::text_to_rule("(! (! P))", 1000);
+    auto target = ds::text_to_rule("P", 1000);
 
-    std::map<cuds::unique_malloc_ptr<cuds::rule_t>, cuds::length_t, PointerLess> rules;
-    std::map<cuds::unique_malloc_ptr<cuds::rule_t>, cuds::length_t, PointerLess> facts;
+    std::map<ds::unique_malloc_ptr<ds::rule_t>, ds::length_t, PointerLess> rules;
+    std::map<ds::unique_malloc_ptr<ds::rule_t>, ds::length_t, PointerLess> facts;
 
-    std::set<cuds::unique_malloc_ptr<cuds::rule_t>, PointerLess> temp_rules;
-    std::set<cuds::unique_malloc_ptr<cuds::rule_t>, PointerLess> temp_facts;
+    std::set<ds::unique_malloc_ptr<ds::rule_t>, PointerLess> temp_rules;
+    std::set<ds::unique_malloc_ptr<ds::rule_t>, PointerLess> temp_facts;
 
-    cuds::length_t cycle = -1;
+    ds::length_t cycle = -1;
     rules.emplace(std::move(mp), cycle);
     facts.emplace(std::move(axiom1), cycle);
     facts.emplace(std::move(axiom2), cycle);
     facts.emplace(std::move(axiom3), cycle);
     facts.emplace(std::move(premise), cycle);
 
-    auto buffer = cuds::unique_malloc_ptr<cuds::rule_t>(reinterpret_cast<cuds::rule_t*>(malloc(32000)));
+    auto buffer = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(32000)));
 
     auto less = PointerLess();
 
@@ -109,7 +109,7 @@ void run() {
                     if (rules.find(buffer) != rules.end() || temp_rules.find(buffer) != temp_rules.end()) {
                         continue;
                     }
-                    auto new_rule = cuds::unique_malloc_ptr<cuds::rule_t>(reinterpret_cast<cuds::rule_t*>(malloc(buffer->data_size())));
+                    auto new_rule = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(buffer->data_size())));
                     memcpy(new_rule.get(), buffer.get(), buffer->data_size());
                     temp_rules.emplace(std::move(new_rule));
                 } else {
@@ -117,10 +117,10 @@ void run() {
                     if (facts.find(buffer) != facts.end() || temp_facts.find(buffer) != temp_facts.end()) {
                         continue;
                     }
-                    auto new_fact = cuds::unique_malloc_ptr<cuds::rule_t>(reinterpret_cast<cuds::rule_t*>(malloc(buffer->data_size())));
+                    auto new_fact = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(buffer->data_size())));
                     memcpy(new_fact.get(), buffer.get(), buffer->data_size());
                     if ((!less(new_fact, target)) && (!less(target, new_fact))) {
-                        std::cout << "Found:\n" << cuds::rule_to_text(new_fact.get(), 32000).get() << "\n" << std::flush;
+                        std::cout << "Found:\n" << ds::rule_to_text(new_fact.get(), 32000).get() << "\n" << std::flush;
                         return;
                     }
                     temp_facts.emplace(std::move(new_fact));
@@ -130,11 +130,11 @@ void run() {
 
         ++cycle;
         for (auto& rule : temp_rules) {
-            auto& movable_rule = const_cast<cuds::unique_malloc_ptr<cuds::rule_t>&>(rule);
+            auto& movable_rule = const_cast<ds::unique_malloc_ptr<ds::rule_t>&>(rule);
             rules.emplace(std::move(movable_rule), cycle);
         }
         for (auto& fact : temp_facts) {
-            auto& movable_fact = const_cast<cuds::unique_malloc_ptr<cuds::rule_t>&>(fact);
+            auto& movable_fact = const_cast<ds::unique_malloc_ptr<ds::rule_t>&>(fact);
             facts.emplace(std::move(movable_fact), cycle);
         }
     }

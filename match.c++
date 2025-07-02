@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-namespace cuds {
+namespace ds {
     namespace {
         bool term_equal(term_t* term_1, term_t* term_2) {
             if (term_1->data_size() != term_2->data_size()) {
@@ -173,4 +173,4 @@ namespace cuds {
         }
         return this;
     }
-} // namespace cuds
+} // namespace ds

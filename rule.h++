@@ -1,10 +1,10 @@
-#ifndef CUDS_RULE_HXX
-#define CUDS_RULE_HXX
+#ifndef DS_RULE_HXX
+#define DS_RULE_HXX
 
 #include "list.h++"
 #include "term.h++"
 
-namespace cuds {
+namespace ds {
     class rule_t : private list_t {
       public:
         /// @brief 获取rule的conclusion
@@ -68,6 +68,6 @@ namespace cuds {
         /// @return rule_t对象的指针
         rule_t* match(rule_t* rule_1, rule_t* rule_2);
     };
-} // namespace cuds
+} // namespace ds
 
 #endif

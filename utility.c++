@@ -3,7 +3,7 @@
 
 #include <cstdlib>
 
-namespace cuds {
+namespace ds {
     void MallocDeleter::operator()(void* ptr) const {
         free(ptr);
     }
@@ -61,4 +61,4 @@ namespace cuds {
         result->match(rule_1, rule_2);
         return unique_malloc_ptr<rule_t>(result);
     }
-} // namespace cuds
+} // namespace ds
