@@ -98,7 +98,7 @@ namespace ds {
             ++list_size;
         }
         length_t offset = sizeof(length_t) + sizeof(length_t) * list_size;
-        memcpy(
+        memmove(
             reinterpret_cast<std::byte*>(this) + offset,
             reinterpret_cast<std::byte*>(this),
             reinterpret_cast<std::byte*>(term) - reinterpret_cast<std::byte*>(this)
