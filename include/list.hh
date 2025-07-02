@@ -1,7 +1,7 @@
 #ifndef DS_LIST_HXX
 #define DS_LIST_HXX
 
-#include "config.h++"
+#include "config.hh"
 
 #include <cstddef>
 

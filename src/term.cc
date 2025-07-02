@@ -1,7 +1,7 @@
-#include "term.h++"
-#include "item.h++"
-#include "list.h++"
-#include "variable.h++"
+#include "term.hh"
+#include "item.hh"
+#include "list.hh"
+#include "variable.hh"
 
 #include <cstddef>
 

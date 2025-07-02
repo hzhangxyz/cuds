@@ -1,10 +1,10 @@
-#include "config.h++"
-#include "item.h++"
-#include "list.h++"
-#include "string.h++"
-#include "term.h++"
-#include "utility.h++"
-#include "variable.h++"
+#include "config.hh"
+#include "item.hh"
+#include "list.hh"
+#include "string.hh"
+#include "term.hh"
+#include "utility.hh"
+#include "variable.hh"
 
 #include <chrono>
 #include <cstring>
@@ -15,6 +15,7 @@
 
 // TODO: check out of bound
 // TODO: manual stack
+// TODO: unification algorithm need to be updated
 
 struct PointerLess {
     template<typename T>
@@ -41,35 +42,40 @@ struct PointerLess {
 };
 
 void run() {
+    int temp_data_size = 1000;
+    int temp_text_size = 1000;
+    int single_result_size = 30000;
+    int single_result_size_threshold = 100;
+
     // P -> Q, P |- Q
     auto mp = ds::text_to_rule(
         "('P -> 'Q)\n"
         "'P\n"
         "----------\n"
         "'Q",
-        1000
+        temp_data_size
     );
     // p -> (q -> p)
     auto axiom1 = ds::text_to_rule(
         "------------------\n"
         "('p -> ('q -> 'p))\n",
-        1000
+        temp_data_size
     );
     // (p -> (q -> r)) -> ((p -> q) -> (p -> r))
     auto axiom2 = ds::text_to_rule(
         "--------------------------------------------------\n"
         "(('p -> ('q -> 'r)) -> (('p -> 'q) -> ('p -> 'r)))\n",
-        1000
+        temp_data_size
     );
     // (!p -> !q) -> (q -> p)
     auto axiom3 = ds::text_to_rule(
         "----------------------------------\n"
         "(((! 'p) -> (! 'q)) -> ('q -> 'p))\n",
-        1000
+        temp_data_size
     );
 
-    auto premise = ds::text_to_rule("(! (! P))", 1000);
-    auto target = ds::text_to_rule("P", 1000);
+    auto premise = ds::text_to_rule("(! (! X))", temp_data_size);
+    auto target = ds::text_to_rule("X", temp_data_size);
 
     std::map<ds::unique_malloc_ptr<ds::rule_t>, ds::length_t, PointerLess> rules;
     std::map<ds::unique_malloc_ptr<ds::rule_t>, ds::length_t, PointerLess> facts;
@@ -84,7 +90,7 @@ void run() {
     facts.emplace(std::move(axiom3), cycle);
     facts.emplace(std::move(premise), cycle);
 
-    auto buffer = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(32000)));
+    auto buffer = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(single_result_size)));
 
     auto less = PointerLess();
 
@@ -101,7 +107,7 @@ void run() {
                 if (!buffer->valid()) {
                     continue;
                 }
-                if (buffer->data_size() > 100) {
+                if (buffer->data_size() > single_result_size_threshold) {
                     continue;
                 }
                 if (buffer->premises_count() != 0) {
@@ -120,7 +126,8 @@ void run() {
                     auto new_fact = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(buffer->data_size())));
                     memcpy(new_fact.get(), buffer.get(), buffer->data_size());
                     if ((!less(new_fact, target)) && (!less(target, new_fact))) {
-                        std::cout << "Found:\n" << ds::rule_to_text(new_fact.get(), 32000).get() << "\n" << std::flush;
+                        printf("Found!\n");
+                        printf("%s", ds::rule_to_text(new_fact.get(), temp_text_size).get());
                         return;
                     }
                     temp_facts.emplace(std::move(new_fact));
@@ -149,7 +156,7 @@ void timer(std::function<void()> func) {
 }
 
 int main() {
-    timer(run);
-    std::cout << "Run again...\n" << std::flush;
-    timer(run);
+    for (auto i = 0; i < 10; ++i) {
+        timer(run);
+    }
 }

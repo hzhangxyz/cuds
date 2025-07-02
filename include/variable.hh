@@ -1,8 +1,8 @@
 #ifndef DS_VARIABLE_HXX
 #define DS_VARIABLE_HXX
 
-#include "config.h++"
-#include "string.h++"
+#include "config.hh"
+#include "string.hh"
 
 #include <cstddef>
 

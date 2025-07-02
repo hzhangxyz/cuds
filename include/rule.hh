@@ -1,8 +1,8 @@
 #ifndef DS_RULE_HXX
 #define DS_RULE_HXX
 
-#include "list.h++"
-#include "term.h++"
+#include "list.hh"
+#include "term.hh"
 
 namespace ds {
     class rule_t : private list_t {

@@ -1,5 +1,5 @@
-#include "list.h++"
-#include "term.h++"
+#include "list.hh"
+#include "term.hh"
 
 #include <cstring>
 

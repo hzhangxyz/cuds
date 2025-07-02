@@ -1,9 +1,9 @@
-#include "item.h++"
-#include "list.h++"
-#include "rule.h++"
-#include "string.h++"
-#include "term.h++"
-#include "variable.h++"
+#include "item.hh"
+#include "list.hh"
+#include "rule.hh"
+#include "string.hh"
+#include "term.hh"
+#include "variable.hh"
 
 #include <cstring>
 

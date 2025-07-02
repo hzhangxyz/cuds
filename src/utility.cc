@@ -1,5 +1,5 @@
-#include "utility.h++"
-#include "list.h++"
+#include "utility.hh"
+#include "list.hh"
 
 #include <cstdlib>
 

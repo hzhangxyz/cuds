@@ -1,4 +1,4 @@
-#include "variable.h++"
+#include "variable.hh"
 
 namespace ds {
     string_t* variable_t::name() {

@@ -1,8 +1,8 @@
 #ifndef DS_UTILITY_HXX
 #define DS_UTILITY_HXX
 
-#include "rule.h++"
-#include "term.h++"
+#include "rule.hh"
+#include "term.hh"
 
 #include <cstdlib>
 #include <memory>

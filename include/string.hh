@@ -1,7 +1,7 @@
 #ifndef DS_STRING_HXX
 #define DS_STRING_HXX
 
-#include "config.h++"
+#include "config.hh"
 
 #include <cstddef>
 

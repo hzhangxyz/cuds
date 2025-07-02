@@ -1,7 +1,7 @@
 #ifndef DS_TERM_HXX
 #define DS_TERM_HXX
 
-#include "config.h++"
+#include "config.hh"
 
 #include <cstddef>
 #include <utility>
