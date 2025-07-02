@@ -14,29 +14,31 @@ namespace ds {
         return *type_pointer();
     }
 
-    term_t* term_t::set_type(term_type_t type) {
+    term_t* term_t::set_type(term_type_t type, std::byte* check_tail) {
+        // 检查对象能否存下term type数据
+        if (check_tail != nullptr) {
+            if (check_tail < reinterpret_cast<std::byte*>(this) + sizeof(term_type_t)) {
+                return nullptr;
+            }
+        }
         *type_pointer() = type;
         return this;
     }
 
-    term_t* term_t::set_null() {
-        set_type(term_type_t::null);
-        return this;
+    term_t* term_t::set_null(std::byte* check_tail) {
+        return set_type(term_type_t::null, check_tail);
     }
 
-    term_t* term_t::set_variable() {
-        set_type(term_type_t::variable);
-        return this;
+    term_t* term_t::set_variable(std::byte* check_tail) {
+        return set_type(term_type_t::variable, check_tail);
     }
 
-    term_t* term_t::set_item() {
-        set_type(term_type_t::item);
-        return this;
+    term_t* term_t::set_item(std::byte* check_tail) {
+        return set_type(term_type_t::item, check_tail);
     }
 
-    term_t* term_t::set_list() {
-        set_type(term_type_t::list);
-        return this;
+    term_t* term_t::set_list(std::byte* check_tail) {
+        return set_type(term_type_t::list, check_tail);
     }
 
     bool term_t::is_null() {
@@ -75,7 +77,7 @@ namespace ds {
         } else if (get_type() == term_type_t::list) {
             return sizeof(term_type_t) + list()->data_size();
         }
-        return -1;
+        return sizeof(term_type_t);
     }
 
     std::byte* term_t::head() {
@@ -86,24 +88,31 @@ namespace ds {
         return head() + data_size();
     }
 
-    char* term_t::print(char* buffer) {
+    char* term_t::print(char* buffer, char* check_tail) {
         if (get_type() == term_type_t::variable) {
-            return variable()->print(buffer);
+            return variable()->print(buffer, check_tail);
         } else if (get_type() == term_type_t::item) {
-            return item()->print(buffer);
+            return item()->print(buffer, check_tail);
         } else if (get_type() == term_type_t::list) {
-            return list()->print(buffer);
+            return list()->print(buffer, check_tail);
         }
         return buffer;
     }
 
-    const char* term_t::scan(const char* buffer) {
+    const char* term_t::scan(const char* buffer, std::byte* check_tail) {
+        // 检查对象能否存下term type数据
+        if (check_tail != nullptr) {
+            if (check_tail < reinterpret_cast<std::byte*>(this) + sizeof(term_type_t)) {
+                return nullptr;
+            }
+        }
+        // 由于term type空间已经确认，设置term type的尾指针检查可以跳过
         if (*buffer == '\'') {
-            return set_variable()->variable()->scan(buffer);
+            return set_variable(nullptr)->variable()->scan(buffer, check_tail);
         } else if (*buffer == '(') {
-            return set_list()->list()->scan(buffer);
+            return set_list(nullptr)->list()->scan(buffer, check_tail);
         } else {
-            return set_item()->item()->scan(buffer);
+            return set_item(nullptr)->item()->scan(buffer, check_tail);
         }
     }
 } // namespace ds

@@ -17,12 +17,18 @@ namespace ds {
         return head() + data_size();
     }
 
-    char* variable_t::print(char* buffer) {
+    char* variable_t::print(char* buffer, char* check_tail) {
+        // 因为在写string前会先写一个单引号，所以在这里也需要检查check_tail是否足够
+        if (check_tail != nullptr) {
+            if (check_tail <= buffer) {
+                return nullptr;
+            }
+        }
         *(buffer++) = '\'';
-        return name()->print(buffer);
+        return name()->print(buffer, check_tail);
     }
 
-    const char* variable_t::scan(const char* buffer) {
-        return name()->scan(buffer + 1);
+    const char* variable_t::scan(const char* buffer, std::byte* check_tail) {
+        return name()->scan(buffer + 1, check_tail);
     }
 } // namespace ds

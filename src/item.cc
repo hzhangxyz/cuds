@@ -17,11 +17,11 @@ namespace ds {
         return head() + data_size();
     }
 
-    char* item_t::print(char* buffer) {
-        return name()->print(buffer);
+    char* item_t::print(char* buffer, char* check_tail) {
+        return name()->print(buffer, check_tail);
     }
 
-    const char* item_t::scan(const char* buffer) {
-        return name()->scan(buffer);
+    const char* item_t::scan(const char* buffer, std::byte* check_tail) {
+        return name()->scan(buffer, check_tail);
     }
 } // namespace ds

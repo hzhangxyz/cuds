@@ -44,8 +44,7 @@ struct PointerLess {
 void run() {
     int temp_data_size = 1000;
     int temp_text_size = 1000;
-    int single_result_size = 30000;
-    int single_result_size_threshold = 100;
+    int single_result_size = 10000;
 
     // P -> Q, P |- Q
     auto mp = ds::text_to_rule(
@@ -103,11 +102,8 @@ void run() {
                 if (rules_cycle != cycle && facts_cycle != cycle) {
                     continue;
                 }
-                buffer->match(rule.get(), fact.get());
+                buffer->match(rule.get(), fact.get(), reinterpret_cast<std::byte*>(buffer.get()) + single_result_size);
                 if (!buffer->valid()) {
-                    continue;
-                }
-                if (buffer->data_size() > single_result_size_threshold) {
                     continue;
                 }
                 if (buffer->premises_count() != 0) {

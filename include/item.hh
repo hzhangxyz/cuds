@@ -16,6 +16,8 @@ namespace ds {
       public:
         /// @brief 获取item的name
         /// @return item的name
+        ///
+        /// 可以在构造前的对象中调用此函数
         string_t* name();
 
         /// @brief 获取item_t对象的大小
@@ -32,13 +34,15 @@ namespace ds {
 
         /// @brief 将item_t对象输出至buffer
         /// @param buffer 待被输出的buffer指针
-        /// @return 被输出后的buffer指针
-        char* print(char* buffer);
+        /// @param check_tail 可选的尾指针检查
+        /// @return 被输出后的buffer指针，如果尾指针检查失败则返回nullptr
+        char* print(char* buffer, char* check_tail = nullptr);
 
         /// @brief 从buffer中输入item_t对象
         /// @param buffer 待输入的buffer指针
-        /// @return 被输入后的buffer指针
-        const char* scan(const char* buffer);
+        /// @param check_tail 可选的尾指针检查
+        /// @return 被输入后的buffer指针，如果尾指针检查失败则返回nullptr
+        const char* scan(const char* buffer, std::byte* check_tail = nullptr);
     };
 } // namespace ds
 

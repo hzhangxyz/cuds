@@ -7,7 +7,7 @@
 #include <cstring>
 
 namespace ds {
-    term_t* term_t::ground(term_t* term, term_t* dictionary) {
+    term_t* term_t::ground(term_t* term, term_t* dictionary, std::byte* check_tail) {
         if (term->get_type() == term_type_t::variable) {
             char* this_string = term->variable()->name()->get_string();
             list_t* list = dictionary->list();
@@ -17,42 +17,66 @@ namespace ds {
                 term_t* value = pair->term(1);
                 char* key_string = key->name()->get_string();
                 if (strcmp(this_string, key_string) == 0) {
+                    if (check_tail) {
+                        if (check_tail < reinterpret_cast<std::byte*>(this) + value->data_size()) {
+                            return nullptr;
+                        }
+                    }
                     memcpy(this, value, value->data_size());
                     return this;
+                }
+            }
+            if (check_tail) {
+                if (check_tail < reinterpret_cast<std::byte*>(this) + term->data_size()) {
+                    return nullptr;
                 }
             }
             memcpy(this, term, term->data_size());
             return this;
         } else if (term->get_type() == term_type_t::item) {
+            if (check_tail) {
+                if (check_tail < reinterpret_cast<std::byte*>(this) + term->data_size()) {
+                    return nullptr;
+                }
+            }
             memcpy(this, term, term->data_size());
             return this;
         } else if (term->get_type() == term_type_t::list) {
             list_t* src = term->list();
-            list_t* dst = set_list()->list();
-            dst->set_list_size(src->get_list_size());
+            if (set_list(check_tail) == nullptr) {
+                return nullptr;
+            }
+            list_t* dst = list();
+            if (dst->set_list_size(src->get_list_size(), check_tail) == nullptr) {
+                return nullptr;
+            }
             for (length_t index = 0; index < dst->get_list_size(); ++index) {
-                dst->term(index)->ground(src->term(index), dictionary);
+                if (dst->term(index)->ground(src->term(index), dictionary, check_tail) == nullptr) {
+                    return nullptr;
+                }
                 dst->update_term_size(index);
             }
             return this;
         }
-        set_null();
-        return this;
+        return nullptr;
     }
 
-    rule_t* rule_t::ground(rule_t* rule, term_t* dictionary) {
+    rule_t* rule_t::ground(rule_t* rule, term_t* dictionary, std::byte* check_tail) {
         list_t* dst = this;
         list_t* src = rule;
-        dst->set_list_size(src->get_list_size());
+        if (dst->set_list_size(src->get_list_size(), check_tail) == nullptr) {
+            return nullptr;
+        }
         for (length_t index = 0; index < dst->get_list_size(); ++index) {
-            dst->term(index)->ground(src->term(index), dictionary);
+            if (dst->term(index)->ground(src->term(index), dictionary, check_tail) == nullptr) {
+                return nullptr;
+            }
             dst->update_term_size(index);
         }
         return this;
     }
 
-    rule_t* rule_t::ground(rule_t* rule, rule_t* dictionary) {
-        ground(rule, dictionary->only_conclusion());
-        return this;
+    rule_t* rule_t::ground(rule_t* rule, rule_t* dictionary, std::byte* check_tail) {
+        return ground(rule, dictionary->only_conclusion(), check_tail);
     }
 } // namespace ds
