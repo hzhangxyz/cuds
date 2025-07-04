@@ -1,10 +1,10 @@
-/* jshint esversion:9 */
+/* jshint esversion:6 */
 
 import createDs from './ds.mjs';
 
 const ds = await createDs(); // jshint ignore:line
 
-var _buffer_size = 1024;
+let _buffer_size = 1024;
 
 export function buffer_size(size = 0) {
     const old_buffer_size = _buffer_size;
@@ -52,8 +52,7 @@ class _common_t {
     }
 
     data() {
-        const encoder = new TextEncoder();
-        return encoder.encode(this.type.to_binary(this.value));
+        return this.type.to_binary(this.value);
     }
 
     size() {

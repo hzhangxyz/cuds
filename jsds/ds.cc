@@ -43,8 +43,8 @@ auto from_binary(const std::string& text) -> std::unique_ptr<T> {
 }
 
 template<typename T>
-auto to_binary(T* value) -> std::string {
-    return std::string(reinterpret_cast<char*>(value), value->data_size());
+auto to_binary(T* value) -> em::val {
+    return em::val(em::typed_memory_view(value->data_size(), reinterpret_cast<unsigned char*>(value)));
 }
 
 template<typename T>
@@ -64,7 +64,7 @@ auto common_declaration(em::class_<T>& t) {
     t.class_function("from_string", from_string<T>);
     t.class_function("to_string", to_string<T>, em::allow_raw_pointers());
     t.class_function("from_binary", from_binary<T>);
-    t.class_function("to_binary", to_binary<T>, em::allow_raw_pointers());
+    t.class_function("to_binary", to_binary<T>, em::return_value_policy::reference());
     t.function("clone", clone<T>, em::allow_raw_pointers());
     t.function("data_size", data_size<T>, em::allow_raw_pointers());
 }
