@@ -58,3 +58,8 @@ class Common(typing.Generic[T]):
 
     def __hash__(self) -> int:
         return hash(self.data())
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Common):
+            return False
+        return self.data() == other.data()
