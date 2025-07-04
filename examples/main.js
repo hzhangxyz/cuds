@@ -35,60 +35,27 @@ const axiom3 = new rule_t(`
 
 const premise = new rule_t(`(! (! X))`);
 const target = new rule_t(`X`);
-
-function array_equal(a, b) {
-    if (a.length !== b.length) {
-        return false;
-    }
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function rule_equal(a, b) {
-    return array_equal(a.data(), b.data());
-}
-
-function rule_in_array(rule, array) {
-    for (let i = 0; i < array.length; i++) {
-        if (rule_equal(rule, array[i])) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function rule_in_map(rule, map) {
-    for (let [key, value] of map) {
-        if (rule_equal(rule, key)) {
-            return true;
-        }
-    }
-    return false;
-}
+const target_hash = target.data_string();
 
 function main() {
     let rules = {};
     let facts = {};
 
     let cycle = -1;
-    rules[mp.data()] = [mp, cycle];
-    facts[axiom1.data()] = [axiom1, cycle];
-    facts[axiom2.data()] = [axiom2, cycle];
-    facts[axiom3.data()] = [axiom3, cycle];
-    facts[premise.data()] = [premise, cycle];
+    rules[mp.data_string()] = [mp, cycle];
+    facts[axiom1.data_string()] = [axiom1, cycle];
+    facts[axiom2.data_string()] = [axiom2, cycle];
+    facts[axiom3.data_string()] = [axiom3, cycle];
+    facts[premise.data_string()] = [premise, cycle];
 
     while (true) {
         let temp_rules = {};
         let temp_facts = {};
 
-        for (let r_data in rules) {
-            for (const f_data in facts) {
-                const [rule, r_cycle] = rules[r_data];
-                const [fact, f_cycle] = facts[f_data];
+        for (let r_hash in rules) {
+            for (const f_hash in facts) {
+                const [rule, r_cycle] = rules[r_hash];
+                const [fact, f_cycle] = facts[f_hash];
                 if (r_cycle != cycle && f_cycle != cycle) {
                     continue;
                 }
@@ -96,23 +63,24 @@ function main() {
                 if (candidate === null) {
                     continue;
                 }
+                const candidate_hash = candidate.data_string();
                 if (candidate.length() != 0) {
                     // rule
-                    if (candidate.data() in rules || candidate.data() in temp_rules) {
+                    if (candidate_hash in rules || candidate_hash in temp_rules) {
                         continue;
                     }
-                    temp_rules[candidate.data()] = candidate;
+                    temp_rules[candidate_hash] = candidate;
                 } else {
                     // fact
-                    if (candidate.data() in facts || candidate.data() in temp_facts) {
+                    if (candidate_hash in facts || candidate_hash in temp_facts) {
                         continue;
                     }
-                    if (rule_equal(candidate, target)) {
+                    if (candidate_hash == target_hash) {
                         console.log("Found!");
                         console.log(candidate.toString());
                         return;
                     }
-                    temp_facts[candidate.data()] = candidate;
+                    temp_facts[candidate_hash] = candidate;
                 }
             }
         }
@@ -120,11 +88,11 @@ function main() {
         cycle++;
         for (let r_hash in temp_rules) {
             const rule = temp_rules[r_hash];
-            rules[rule.data()] = [rule, cycle];
+            rules[rule.data_string()] = [rule, cycle];
         }
         for (let f_hash in temp_facts) {
             const fact = temp_facts[f_hash];
-            facts[fact.data()] = [fact, cycle];
+            facts[fact.data_string()] = [fact, cycle];
         }
     }
 }

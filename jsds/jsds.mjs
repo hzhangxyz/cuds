@@ -55,6 +55,11 @@ class _common_t {
         return this.type.to_binary(this.value);
     }
 
+    data_string() {
+        const decoder = new TextDecoder("utf-8");
+        return decoder.decode(this.data());
+    }
+
     size() {
         return this.value.data_size();
     }
