@@ -25,7 +25,8 @@ class Term(Common[ds.Term]):
             raise TypeError(f"Unexpected term type")
 
     def __floordiv__(self, other: Term) -> Term | None:
-        term = ds.Term.ground(self.value, other.value, buffer_size())
+        capacity = buffer_size()
+        term = ds.Term.ground(self.value, other.value, capacity)
         if term is None:
             return None
-        return Term(term)
+        return Term(term, capacity)

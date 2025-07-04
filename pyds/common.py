@@ -10,28 +10,28 @@ class Common(typing.Generic[T]):
 
     _base: type[T]
 
-    def __init__(self, value: Common[T] | T | str | bytes, capacity: int | None = None) -> None:
+    def __init__(self, value: Common[T] | T | str | bytes, size: int | None = None) -> None:
         self.value: T
         self.capacity: int | None
         if isinstance(value, type(self)):
             self.value = value.value
             self.capacity = value.capacity
-            if capacity is not None:
+            if size is not None:
                 raise ValueError("Cannot set capacity when copying from another instance.")
         elif isinstance(value, self._base):
             self.value = value
-            self.capacity = capacity
+            self.capacity = size
+            if size is None:
+                raise ValueError("Size must be specified when initializing from a base type.")
         elif isinstance(value, str):
-            self.value = self._base.from_string(value, buffer_size())
+            self.capacity = size if size is not None else buffer_size()
+            self.value = self._base.from_string(value, self.capacity)
             if self.value is None:
                 raise ValueError("Initialization from a string failed.")
-            self.capacity = buffer_size()
-            if capacity is not None:
-                raise ValueError("Cannot set capacity when initializing from a string.")
         elif isinstance(value, bytes):
             self.value = self._base.from_binary(value)
             self.capacity = self.size()
-            if capacity is not None:
+            if size is not None:
                 raise ValueError("Cannot set capacity when initializing from bytes.")
         else:
             raise TypeError("Unsupported type for initialization.")

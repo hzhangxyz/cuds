@@ -20,16 +20,18 @@ class Rule(Common[ds.Rule]):
         return Term(self.value.conclusion())
 
     def __floordiv__(self, other: Rule) -> Rule | None:
-        rule = ds.Rule.ground(self.value, other.value, buffer_size())
+        capacity = buffer_size()
+        rule = ds.Rule.ground(self.value, other.value, capacity)
         if rule is None:
             return None
-        return Rule(rule)
+        return Rule(rule, capacity)
 
     def __matmul__(self, other: Rule) -> Rule | None:
-        rule = ds.Rule.match(self.value, other.value, buffer_size())
+        capacity = buffer_size()
+        rule = ds.Rule.match(self.value, other.value, capacity)
         if rule is None:
             return None
-        return Rule(rule)
+        return Rule(rule, capacity)
 
     def __repr__(self) -> str:
         return f"Rule[\n{self}]"
