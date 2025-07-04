@@ -72,11 +72,11 @@ void run() {
     auto premise = ds::text_to_rule("(! (! X))", temp_data_size);
     auto target = ds::text_to_rule("X", temp_data_size);
 
-    std::map<ds::unique_malloc_ptr<ds::rule_t>, ds::length_t, PointerLess> rules;
-    std::map<ds::unique_malloc_ptr<ds::rule_t>, ds::length_t, PointerLess> facts;
+    std::map<std::unique_ptr<ds::rule_t>, ds::length_t, PointerLess> rules;
+    std::map<std::unique_ptr<ds::rule_t>, ds::length_t, PointerLess> facts;
 
-    std::set<ds::unique_malloc_ptr<ds::rule_t>, PointerLess> temp_rules;
-    std::set<ds::unique_malloc_ptr<ds::rule_t>, PointerLess> temp_facts;
+    std::set<std::unique_ptr<ds::rule_t>, PointerLess> temp_rules;
+    std::set<std::unique_ptr<ds::rule_t>, PointerLess> temp_facts;
 
     ds::length_t cycle = -1;
     rules.emplace(std::move(mp), cycle);
@@ -85,7 +85,7 @@ void run() {
     facts.emplace(std::move(axiom3), cycle);
     facts.emplace(std::move(premise), cycle);
 
-    auto buffer = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(single_result_size)));
+    auto buffer = std::unique_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(operator new(single_result_size)));
 
     auto less = PointerLess();
 
@@ -107,7 +107,7 @@ void run() {
                     if (rules.find(buffer) != rules.end() || temp_rules.find(buffer) != temp_rules.end()) {
                         continue;
                     }
-                    auto new_rule = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(buffer->data_size())));
+                    auto new_rule = std::unique_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(operator new(buffer->data_size())));
                     memcpy(new_rule.get(), buffer.get(), buffer->data_size());
                     temp_rules.emplace(std::move(new_rule));
                 } else {
@@ -115,7 +115,7 @@ void run() {
                     if (facts.find(buffer) != facts.end() || temp_facts.find(buffer) != temp_facts.end()) {
                         continue;
                     }
-                    auto new_fact = ds::unique_malloc_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(malloc(buffer->data_size())));
+                    auto new_fact = std::unique_ptr<ds::rule_t>(reinterpret_cast<ds::rule_t*>(operator new(buffer->data_size())));
                     memcpy(new_fact.get(), buffer.get(), buffer->data_size());
                     if ((!less(new_fact, target)) && (!less(target, new_fact))) {
                         printf("Found!\n");
@@ -129,11 +129,11 @@ void run() {
 
         ++cycle;
         for (auto& rule : temp_rules) {
-            auto& movable_rule = const_cast<ds::unique_malloc_ptr<ds::rule_t>&>(rule);
+            auto& movable_rule = const_cast<std::unique_ptr<ds::rule_t>&>(rule);
             rules.emplace(std::move(movable_rule), cycle);
         }
         for (auto& fact : temp_facts) {
-            auto& movable_fact = const_cast<ds::unique_malloc_ptr<ds::rule_t>&>(fact);
+            auto& movable_fact = const_cast<std::unique_ptr<ds::rule_t>&>(fact);
             facts.emplace(std::move(movable_fact), cycle);
         }
     }
