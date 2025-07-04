@@ -111,52 +111,27 @@ PYBIND11_MODULE(ds, m) {
     common_declaration(term_t);
     common_declaration(rule_t);
 
-    item_t.def(
-        "name",
-        [](ds::item_t* item) { return item->name(); },
-        py::return_value_policy::reference_internal
-    );
+    item_t.def("name", &ds::item_t::name, py::return_value_policy::reference_internal);
 
-    variable_t.def(
-        "name",
-        [](ds::variable_t* variable) { return variable->name(); },
-        py::return_value_policy::reference_internal
-    );
+    variable_t.def("name", &ds::variable_t::name, py::return_value_policy::reference_internal);
 
-    list_t.def("__len__", [](ds::list_t* list) { return list->get_list_size(); });
-    list_t.def(
-        "__getitem__",
-        [](ds::list_t* list, int index) { return list->term(index); },
-        py::return_value_policy::reference_internal
-    );
+    list_t.def("__len__", &ds::list_t::get_list_size);
+    list_t.def("__getitem__", &ds::list_t::term, py::return_value_policy::reference_internal);
 
-    term_t.def(
-        "term",
-        [](ds::term_t* term) {
-            if (term->get_type() == ds::term_type_t::variable) {
-                return py::cast(term->variable());
-            } else if (term->get_type() == ds::term_type_t::item) {
-                return py::cast(term->item());
-            } else if (term->get_type() == ds::term_type_t::list) {
-                return py::cast(term->list());
-            } else {
-                return py::cast(nullptr);
-            }
-        },
-        py::return_value_policy::reference_internal
-    );
+    py::enum_<ds::term_type_t>(term_t, "Type")
+        .value("Variable", ds::term_type_t::variable)
+        .value("Item", ds::term_type_t::item)
+        .value("List", ds::term_type_t::list)
+        .value("Null", ds::term_type_t::null)
+        .export_values();
+    term_t.def("get_type", &ds::term_t::get_type);
+    term_t.def("variable", &ds::term_t::variable, py::return_value_policy::reference_internal);
+    term_t.def("item", &ds::term_t::item, py::return_value_policy::reference_internal);
+    term_t.def("list", &ds::term_t::list, py::return_value_policy::reference_internal);
 
-    rule_t.def("__len__", [](ds::rule_t* rule) { return rule->premises_count(); });
-    rule_t.def(
-        "conclusion",
-        [](ds::rule_t* rule) { return rule->conclusion(); },
-        py::return_value_policy::reference_internal
-    );
-    rule_t.def(
-        "__getitem__",
-        [](ds::rule_t* rule, int index) { return rule->premises(index); },
-        py::return_value_policy::reference_internal
-    );
+    rule_t.def("__len__", &ds::rule_t::premises_count);
+    rule_t.def("conclusion", &ds::rule_t::conclusion, py::return_value_policy::reference_internal);
+    rule_t.def("__getitem__", &ds::rule_t::premises, py::return_value_policy::reference_internal);
 
     term_t.def_static("ground", term_ground);
     rule_t.def_static("ground", rule_ground);

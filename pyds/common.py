@@ -21,8 +21,6 @@ class Common(typing.Generic[T]):
         elif isinstance(value, self._base):
             self.value = value
             self.capacity = size
-            if size is None:
-                raise ValueError("Size must be specified when initializing from a base type.")
         elif isinstance(value, str):
             self.capacity = size if size is not None else buffer_size()
             self.value = self._base.from_string(value, self.capacity)

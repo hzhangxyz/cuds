@@ -13,16 +13,15 @@ class Term(Common[ds.Term]):
 
     @property
     def term(self) -> Variable | Item | List:
-        value = self.value.term()
-
-        if isinstance(value, ds.Variable):
-            return Variable(value)
-        elif isinstance(value, ds.Item):
-            return Item(value)
-        elif isinstance(value, ds.List):
-            return List(value)
-        else:
-            raise TypeError(f"Unexpected term type")
+        match self.value.get_type():
+            case ds.Term.Type.Variable:
+                return Variable(self.value.variable())
+            case ds.Term.Type.Item:
+                return Item(self.value.item())
+            case ds.Term.Type.List:
+                return List(self.value.list())
+            case _:
+                raise TypeError(f"Unexpected term type")
 
     def __floordiv__(self, other: Term) -> Term | None:
         capacity = buffer_size()
