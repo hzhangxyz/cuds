@@ -1,4 +1,9 @@
 from __future__ import annotations
+
+__all__ = [
+    "Rule",
+]
+
 from . import ds
 from .common import Common
 from .term_t import Term

@@ -1,4 +1,3 @@
-import copy
 import time
 import pyds
 
@@ -60,7 +59,7 @@ def main():
                     # Rule
                     if candidate in rules or candidate in temp_rules:
                         continue
-                    temp_rules.add(copy.copy(candidate))
+                    temp_rules.add(candidate)
                 else:
                     # Fact
                     if candidate in facts or candidate in temp_facts:
@@ -69,7 +68,7 @@ def main():
                         print("Found!")
                         print(candidate)
                         return
-                    temp_facts.add(copy.copy(candidate))
+                    temp_facts.add(candidate)
 
         cycle += 1
         for rule in temp_rules:

@@ -1,7 +1,15 @@
 from __future__ import annotations
+
+__all__ = [
+    "List",
+]
+
 import typing
 from . import ds
 from .common import Common
+
+if typing.TYPE_CHECKING:
+    from .term_t import Term
 
 
 class List(Common[ds.List]):

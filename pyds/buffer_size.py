@@ -1,3 +1,7 @@
+__all__ = [
+    "buffer_size",
+]
+
 _buffer_size = 1024
 
 

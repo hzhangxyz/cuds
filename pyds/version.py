@@ -1,4 +1,7 @@
-all = ["version", "__version__"]
+__all__ = [
+    "version",
+    "__version__",
+]
 
 try:
     from ._version import version, __version__

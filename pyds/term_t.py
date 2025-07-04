@@ -1,4 +1,9 @@
 from __future__ import annotations
+
+__all__ = [
+    "Term",
+]
+
 from . import ds
 from .common import Common
 from .variable_t import Variable
@@ -21,7 +26,7 @@ class Term(Common[ds.Term]):
             case ds.Term.Type.List:
                 return List(self.value.list())
             case _:
-                raise TypeError(f"Unexpected term type")
+                raise TypeError(f"Unexpected term type.")
 
     def __floordiv__(self, other: Term) -> Term | None:
         capacity = buffer_size()
