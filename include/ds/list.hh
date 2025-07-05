@@ -1,9 +1,8 @@
 #ifndef DS_LIST_HH
 #define DS_LIST_HH
 
-#include "config.hh"
-
 #include <cstddef>
+#include <ds/config.hh>
 
 namespace ds {
     class term_t;
@@ -11,14 +10,16 @@ namespace ds {
     /// @brief list_t对象
     ///
     /// 内存分布:
+    /// 1. list_size : length_t；
+    /// 2. term_size : length_t[list_size]；
+    /// 3. term : term_t[list_size]。
     ///
-    /// list_size : length_t
+    /// 可能的状态有：
+    /// 1. 完全没有初始化；
+    /// 2.x 已经设置了list size，term size设置了前x个；
     ///
-    /// term_size : length_t[list_size]
     ///
-    /// term : term_t[list_size]
-    ///
-    /// 这里的term_size是前若干个term的累计大小
+    /// @note 这里的term_size是前若干个term的累计大小
     class list_t {
         /// @brief 获取list大小的指针
         /// @return list大小的指针
