@@ -1,12 +1,5 @@
+#include <ds/ds.hh>
 #include <pybind11/pybind11.h>
-
-#include <ds/item.hh>
-#include <ds/list.hh>
-#include <ds/rule.hh>
-#include <ds/string.hh>
-#include <ds/term.hh>
-#include <ds/utility.hh>
-#include <ds/variable.hh>
 
 namespace py = pybind11;
 

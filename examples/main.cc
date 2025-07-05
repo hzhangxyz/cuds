@@ -5,13 +5,8 @@
 #include <map>
 #include <set>
 
-#include <ds/config.hh>
-#include <ds/item.hh>
-#include <ds/list.hh>
-#include <ds/string.hh>
-#include <ds/term.hh>
+#include <ds/ds.hh>
 #include <ds/utility.hh>
-#include <ds/variable.hh>
 
 struct PointerLess {
     template<typename T>
