@@ -1,3 +1,4 @@
+#include <ds/helper.hh>
 #include <ds/variable.hh>
 
 namespace ds {
@@ -18,11 +19,8 @@ namespace ds {
     }
 
     char* variable_t::print(char* buffer, char* check_tail) {
-        // 因为在写string前会先写一个单引号，所以在这里也需要检查check_tail是否足够
-        if (check_tail != nullptr) {
-            if (check_tail <= buffer) {
-                return nullptr;
-            }
+        if (check_till_fail(check_tail, buffer)) [[unlikely]] {
+            return nullptr;
         }
         *(buffer++) = '\'';
         return name()->print(buffer, check_tail);
