@@ -1,5 +1,5 @@
-#ifndef DS_VARIABLE_HXX
-#define DS_VARIABLE_HXX
+#ifndef DS_VARIABLE_HH
+#define DS_VARIABLE_HH
 
 #include "config.hh"
 #include "string.hh"

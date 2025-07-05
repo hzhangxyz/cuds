@@ -1,5 +1,5 @@
-#ifndef DS_RULE_HXX
-#define DS_RULE_HXX
+#ifndef DS_RULE_HH
+#define DS_RULE_HH
 
 #include "list.hh"
 #include "term.hh"

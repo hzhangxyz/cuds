@@ -1,5 +1,5 @@
-#ifndef DS_CONFIG_HXX
-#define DS_CONFIG_HXX
+#ifndef DS_CONFIG_HH
+#define DS_CONFIG_HH
 
 #include <cstdint>
 

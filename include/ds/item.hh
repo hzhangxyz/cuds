@@ -1,5 +1,5 @@
-#ifndef DS_ITEM_HXX
-#define DS_ITEM_HXX
+#ifndef DS_ITEM_HH
+#define DS_ITEM_HH
 
 #include "config.hh"
 #include "string.hh"

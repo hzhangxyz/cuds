@@ -1,5 +1,5 @@
-#ifndef DS_TERM_HXX
-#define DS_TERM_HXX
+#ifndef DS_TERM_HH
+#define DS_TERM_HH
 
 #include "config.hh"
 

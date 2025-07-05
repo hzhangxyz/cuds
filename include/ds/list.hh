@@ -1,5 +1,5 @@
-#ifndef DS_LIST_HXX
-#define DS_LIST_HXX
+#ifndef DS_LIST_HH
+#define DS_LIST_HH
 
 #include "config.hh"
 

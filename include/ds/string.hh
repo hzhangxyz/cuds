@@ -1,5 +1,5 @@
-#ifndef DS_STRING_HXX
-#define DS_STRING_HXX
+#ifndef DS_STRING_HH
+#define DS_STRING_HH
 
 #include "config.hh"
 

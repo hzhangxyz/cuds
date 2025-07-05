@@ -1,5 +1,5 @@
-#ifndef DS_UTILITY_HXX
-#define DS_UTILITY_HXX
+#ifndef DS_UTILITY_HH
+#define DS_UTILITY_HH
 
 #include "rule.hh"
 #include "term.hh"
